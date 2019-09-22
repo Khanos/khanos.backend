@@ -22,7 +22,7 @@ module.exports = {
                         let info = {
                             author: {
                                 login: curr.author.login,
-                                avatar: curr.author.avatar
+                                avatar: curr.author.avatar_url
                             },
                             commit: {
                                 message: curr.commit.message,
