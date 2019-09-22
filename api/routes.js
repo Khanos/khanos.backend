@@ -8,5 +8,6 @@ let GithubController = require('./controllers/GithubController');
 router.get('/', SiteController.index);
 // Github routes
 router.get('/getRepos', GithubController.getRepos);
+router.get('/searchCommitsWithWord/:word', GithubController.searchCommitsWithWord);
 
 module.exports = router;
