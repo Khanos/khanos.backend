@@ -12,7 +12,8 @@ const host = process.env.HOST || 'localhost';
 app.use('/api/v1', routesIndex);
 app.use(compression()); // compress the HTTP response sent back to a client.
 app.use(helmet()); //Protect the app from well-known web vulnerabilities.
-app.listen(port, () => {
+let server = app.listen(port, () => {
     console.log('The app is running...');
     console.log(`http://${host}:${port}`);
-})
+});
+module.exports = server;
