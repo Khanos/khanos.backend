@@ -3,7 +3,7 @@ const request = require('request-promise');
 module.exports = {
     getCommitsByWord: (word)=>{
         let options = {
-            uri: `https://api.github.com/search/commits?q=repo/${word}`,
+            uri: process.env.GITHUB_SEARCH_COMMITS_URL+word,
             headers: {
                 'User-Agent': 'request',
                 'Accept': 'application/vnd.github.cloak-preview'
