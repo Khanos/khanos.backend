@@ -7,15 +7,15 @@ chai.should();
 describe('GithubControlle', () => {
 
 	describe('#getRepos()', function () {
-		it('Should return a json', (done) => {
+		it('Should return an Array', (done) => {
 			chai.request(app)
-				.get('/api/v1/getRepos')
+				.get('/api/v1/searchCommitsWithWord/fuck')
 				.end((err, res) => {
 					if(err){
 						console.log(err);
 					}
 					res.should.have.status(200);
-					res.body.should.be.a('object');
+					res.body.should.be.a('array');
 					done();
 				});
 		});
