@@ -4,9 +4,9 @@ const app = require('../../app');
 chai.use(chaiHttp);
 chai.should();
 
-describe('GithubControlle', () => {
-
-	describe('#getRepos()', function () {
+describe('GithubController', () => {
+	console.log('test in controller');
+	describe('#searchCommitsWithWord()', function () {
 		it('Should return an Array', (done) => {
 			chai.request(app)
 				.get('/api/v1/searchCommitsWithWord/fuck')

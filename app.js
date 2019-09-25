@@ -3,6 +3,7 @@ const compression = require('compression');
 const helmet = require('helmet');
 const app = express();
 require('dotenv').config();
+require('app-module-path').addPath(__dirname);
 // APi entry points
 const routesIndex = require('./api/routes');
 // Configurations
