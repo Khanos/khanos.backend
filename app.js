@@ -1,6 +1,7 @@
 const express = require('express');
 const compression = require('compression');
 const helmet = require('helmet');
+const path = require('path');
 const app = express();
 require('dotenv').config();
 require('app-module-path').addPath(__dirname);
@@ -26,6 +27,9 @@ app.use(function(req, res, next) {
     next();
 });
 // Middleware imports
+app.get('/', (req, res) => {
+    return res.sendFile(path.join(__dirname+'/views/index.html'));
+});
 app.use('/api/v1', routesIndex);
 app.use(compression()); // compress the HTTP response sent back to a client.
 app.use(helmet()); //Protect the app from well-known web vulnerabilities.
