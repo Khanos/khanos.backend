@@ -32,7 +32,7 @@ module.exports = {
                 return arr;
             }, []);
         } else {
-            commits = data.error;
+            commits = {error: true, message: data.message};
         }
         return res.send(commits);
     }
