@@ -3,7 +3,7 @@ const request = require('request-promise');
 module.exports = {
     searchCommitsWithWord: (word)=>{
         let options = {
-            uri: process.env.GITHUB_API_URLX+`search/commits?q=repo/${word}`,
+            uri: process.env.GITHUB_API_URL+`search/commits?q=repo/${word}`,
             headers: {
                 'User-Agent': 'khanos super api',
                 'Accept': 'application/vnd.github.cloak-preview'
