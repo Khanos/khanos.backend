@@ -2,6 +2,7 @@ const GithubService = require('api/services/GithubService');
 
 module.exports = {
     getRepos: (req, res) => {
+        console.log('this is a test');
         return res.json(req.headers);
     },
     searchCommitsWithWord: async(req, res) => {
