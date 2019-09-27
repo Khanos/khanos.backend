@@ -7,7 +7,7 @@ module.exports = {
     },
     searchCommitsWithWord: async(req, res) => {
         const word = req.params.word;
-        const data = await GithubService.searchCommitsWithWord(word);
+        let data = await GithubService.searchCommitsWithWord(word);
         let commits = data.items.reduce((arr, curr) => {
             if (curr.author !== null){
                 let info = {
