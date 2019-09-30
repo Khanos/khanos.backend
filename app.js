@@ -1,14 +1,12 @@
+require('dotenv').config();
+require('app-module-path').addPath(__dirname);
 const express = require('express');
 const compression = require('compression');
 const helmet = require('helmet');
 const path = require('path');
 const favicon = require('serve-favicon');
 const app = express();
-require('dotenv').config();
-require('app-module-path').addPath(__dirname);
-// APi entry points
 const routesIndex = require('./api/routes');
-// Configurations
 const port = process.env.PORT || 3000;
 const host = process.env.HOST || 'localhost';
 app.use(favicon(__dirname + '/public/img/favicon.ico'));
