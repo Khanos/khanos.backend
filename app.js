@@ -12,6 +12,7 @@ const routesIndex = require('./api/routes');
 const port = process.env.PORT || 3000;
 const host = process.env.HOST || 'localhost';
 app.use(favicon(__dirname + '/public/img/favicon.ico'));
+app.use(express.static('public'));
 app.use(function(req, res, next) {
     var err = null;
     try {
