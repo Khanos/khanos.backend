@@ -12,51 +12,54 @@ let hashCode = (url) => {
     }
     return Math.abs(hash);
 };
-let validateUrl = async (original_url) => {
+let validateUrl = (original_url, next) => {
     let host;
     if (original_url.indexOf('http://www') !== -1) {
         host = original_url.substring(11, original_url.length);
     } else if (original_url.indexOf('https://www') !== -1) {
         host = original_url.substring(12, original_url.length);
     } else {
-        throw new Error("invalid URL");
+        return next(new Error("invalid URL"));
     }
-    return await dns.lookup(host);
+    dns.lookup(host, (err, response) => {
+        if(err) return next(err);
+        return next(null, response);
+    });
 }
 
 module.exports = {
-    createNewShortUrl: (original_url) => {
-        validateUrl(original_url)
-            .then((response) => {
-                let urlObj = {
-                    original_url: original_url,
-                    creation_date: new Date()
-                };
+    createNewShortUrl: (original_url, next) => {
+        validateUrl(original_url, (err, response) => {
+            if(!err) {
+                let urlObj = {original_url: original_url};
                 // Find the document
-                UrlModel.find(urlObj);
-            })
-            .then((response) => {
-                if (response.length === 0) {
-                    urlObj.short_url = hashCode(original_url);
-                    UrlModel.create(urlObj);
-                }
-                else {
-                    return {
-                        "original_url": response[0].original_url,
-                        "short_url": response[0].short_url,
-                        "creation_date": response[0].creation_date
-                    };
-                }
-            })
-            .then((response) => {
-                return {
-                    "original_url": response.original_url,
-                    "short_url": response.short_url,
-                    "creation_date": response.creation_date
-                };
-            })
-            .catch((err) => {
-                return err;
-            })
+                UrlModel.findOne(urlObj, (err, result) => {
+                    if(!err) {
+                        if (result.length === 0) {
+                            urlObj.short_url = hashCode(original_url);
+                            urlObj.creation_date = new Date();
+                            UrlModel.create(urlObj, (err, result) => {
+                                if (err) return next(err);
+                                return next(null, {
+                                    "original_url": result.original_url,
+                                    "short_url": result.short_url,
+                                    "creation_date": result.creation_date
+                                })
+                            });
+                        } else {
+                            return next(null, {
+                                "original_url": result.original_url,
+                                "short_url": result.short_url,
+                                "creation_date": result.creation_date
+                            })
+                        }
+                    } else {
+                        return next(err);
+                    }
+                })
+            } else {
+                return next(err);
+            }
+        })
     }
 }
