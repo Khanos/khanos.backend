@@ -1,6 +1,5 @@
 require('dotenv').config();
 const UrlShortenerService = require('../../api/services/UrlShortenerService');
-const UrlModel = require('../../api/models/UrlModel');
 const chai = require('chai');
 const chaiAsPromised = require("chai-as-promised");
 chai.use(chaiAsPromised);
@@ -52,6 +51,35 @@ describe('UrlShortenerService', () => {
                     done(err);
                 }
             });
-        })
-    })
+        });
+        it('Should create a new short url for facebook', (done) => {
+            let original_url = 'https://www.facebook.com';
+            UrlShortenerService.createNewShortUrl(original_url, (err, response) => {
+                if(!err) {
+                    response.should.have.property("original_url", "https://www.facebook.com");
+                    response.should.have.property("short_url", 1721158175);
+                    response.creation_date.should.be.instanceof(Date);
+                    done();
+                } else {
+                    done(err);
+                }
+            });
+        });
+    });
+
+    describe('#deleteShortUrl', () => {
+        it('Should delete the facebook url created in the previous test', (done) => {
+            let short_url = 1721158175;
+            UrlShortenerService.deleteShortUrl(short_url, (err, response) => {
+                if(!err) {
+                    response.should.have.property('deletedCount');
+                    response.deletedCount.should.be.equal(1);
+                    response.ok.should.be.equal(1);
+                    done();
+                } else {
+                    done(err);
+                }
+            });
+        });
+    });
 });

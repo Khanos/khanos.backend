@@ -35,7 +35,7 @@ module.exports = {
                 // Find the document
                 UrlModel.findOne(urlObj, (err, result) => {
                     if(!err) {
-                        if (result.length === 0) {
+                        if (!result) {
                             urlObj.short_url = hashCode(original_url);
                             urlObj.creation_date = new Date();
                             UrlModel.create(urlObj, (err, result) => {
@@ -61,5 +61,17 @@ module.exports = {
                 return next(err);
             }
         })
+    },
+    deleteShortUrl: (short_url, next) => {
+        const query = {
+            short_url: short_url
+        }
+        UrlModel.deleteOne(query)
+            .then((response) => {
+                return next(null, response)
+            })
+            .catch((err) => {
+                return next(err);
+            });
     }
 }
