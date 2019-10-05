@@ -5,10 +5,16 @@ const compression = require('compression');
 const helmet = require('helmet');
 const path = require('path');
 const favicon = require('serve-favicon');
-const app = express();
 const routesIndex = require('./api/routes');
 const port = process.env.PORT || 3000;
 const host = process.env.HOST || 'localhost';
+const mongoose = require('mongoose');
+const app = express();
+mongoose.connect(process.env.CONNECTION_URL, {
+    dbName: 'test',
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+}).catch(err => console.log('Something goes wrong with mongoose', err));
 app.use(favicon(__dirname + '/public/img/favicon.ico'));
 app.use(express.static('public'));
 app.use(function(req, res, next) {

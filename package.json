@@ -24,6 +24,7 @@
     "express": "^4.17.1",
     "github-api": "^3.3.0",
     "helmet": "^3.21.1",
+    "mongoose": "^5.7.3",
     "request": "^2.88.0",
     "request-promise": "^4.2.4",
     "serve-favicon": "^2.5.0"
