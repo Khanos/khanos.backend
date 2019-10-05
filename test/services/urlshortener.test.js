@@ -40,5 +40,18 @@ describe('UrlShortenerService', () => {
                 }
             });
         });
+        it('Should return the short url from the database', (done) => {
+            let original_url = 'https://www.stackoverflow.com';
+            UrlShortenerService.createNewShortUrl(original_url, (err, response) => {
+                if(!err){
+                    response.should.have.property("original_url", "https://www.stackoverflow.com");
+                    response.should.have.property("short_url", 123123123);
+                    response.creation_date.should.be.instanceof(Date);
+                    done();
+                } else {
+                    done(err);
+                }
+            });
+        })
     })
 });
