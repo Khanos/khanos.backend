@@ -7,7 +7,7 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "Mocha All",
+            "name": "Test current file",
             "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
             "args": [
                 "--timeout",
@@ -15,7 +15,7 @@
                 "--colors",
                 "${file}"
             ],
-            "console": "integratedTerminal",
+            "console": "internalConsole",
             "internalConsoleOptions": "neverOpen"
         },
         {
@@ -25,7 +25,7 @@
             "runtimeExecutable": "nodemon",
             "program": "${workspaceFolder}/app.js",
             "restart": true,
-            "console": "integratedTerminal",
+            "console": "internalConsole",
             "internalConsoleOptions": "neverOpen"
         }
     ]
