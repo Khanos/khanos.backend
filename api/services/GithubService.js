@@ -1,7 +1,7 @@
 const request = require('request-promise');
 
 module.exports = {
-    searchCommitsWithWord: (word)=>{
+    searchCommitsByWord: (word)=>{
         let options = {
             uri: process.env.GITHUB_API_URL+`search/commits?q=repo/${word}`,
             headers: {

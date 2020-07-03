@@ -1,13 +1,9 @@
 const GithubService = require('api/services/GithubService');
 
 module.exports = {
-    getRepos: (req, res) => {
-        console.log('this is a test');
-        return res.json(req.headers);
-    },
-    searchCommitsWithWord: async(req, res) => {
+    getCommits: async(req, res) => {
         const word = req.params.word;
-        let data = await GithubService.searchCommitsWithWord(word);
+        let data = await GithubService.searchCommitsByWord(word);
         let commits;
         if(!data.error){
             commits = data.items.reduce((arr, curr) => {

@@ -5,7 +5,6 @@ let GithubController = require('./controllers/GithubController');
 // Site routes
 router.get('/', MainController.index);
 // Github routes
-router.get('/getRepos', GithubController.getRepos);
-router.get('/searchCommitsWithWord/:word', GithubController.searchCommitsWithWord);
+router.get('/github/getCommits/:word', GithubController.getCommits);
 
 module.exports = router;
