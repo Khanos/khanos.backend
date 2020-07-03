@@ -9,6 +9,7 @@ const routesIndex = require('./api/routes');
 const port = process.env.PORT || 3000;
 const host = process.env.HOST || 'localhost';
 const mongoose = require('mongoose');
+const { response } = require('express');
 const app = express();
 mongoose.connect(process.env.CONNECTION_URL, {
   dbName: 'test',
@@ -48,12 +49,16 @@ app.use((req, res, next) => {
 });
 // error handler middleware
 app.use((error, req, res, next) => {
-  res.status(error.status || 500).send({
-    error: {
-      status: error.status || 500,
-      message: `Ups, something bad happened: ${error.message}` || 'Ups, something bad happened: Internal Server Error',
-    },
-  });
+  let response = {
+    status: error.status || 500,
+    message: `Ups, something bad happened: ${error.message}` || 'Ups, something bad happened: Internal Server Error',
+    error: error
+  };
+  if (process.env.ENV !== 'development') {
+    response.status = '500';
+    response.message = `🤦‍♂️, something bad happened` 
+  }
+  return res.render('error.ejs', response);
 });
 let server = app.listen(port, () => {
   console.log('The app is running...');
