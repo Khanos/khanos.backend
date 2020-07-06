@@ -12,7 +12,7 @@ const mongoose = require('mongoose');
 const { response } = require('express');
 const app = express();
 mongoose.connect(process.env.CONNECTION_URL, {
-  dbName: 'test',
+  dbName: 'khanos',
   useNewUrlParser: true,
   useUnifiedTopology: true
 }).catch(err => console.log('Something goes wrong with mongoose', err));

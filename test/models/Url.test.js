@@ -3,7 +3,7 @@ const UrlModel = require('../../api/models/UrlModel');
 const chai = require('chai');
 const mongoose = require('mongoose');
 mongoose.connect(process.env.CONNECTION_URL, {
-    dbName: 'test',
+    dbName: 'khanos',
     useNewUrlParser: true,
     useUnifiedTopology: true
 }).catch(err => console.log('Something goes wrong with mongoose', err));
