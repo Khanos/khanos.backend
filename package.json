@@ -11,7 +11,7 @@
     "type": "git",
     "url": "git+https://github.com/Khanos/khanos.backend.git"
   },
-  "author": "",
+  "author": "@khanos.js",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/Khanos/khanos.backend/issues"
