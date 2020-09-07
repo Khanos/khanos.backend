@@ -17,8 +17,8 @@ module.exports = {
                         },
                         commit: {
                             message: item.commit.message,
-                            url: item.commit.url,
-                            date: item.html_url,
+                            url: item.html_url,
+                            date: item.commit.committer.date,
                         },
                         repo: {
                             name: item.repository.name,
