@@ -1,13 +1,14 @@
+require('dotenv').config();
 const GithubService = require('../../api/services/GithubService');
 const chai = require('chai');
 chai.should();
 chai.use(require('chai-things'));
 
 describe('GithubService', () => {
-    
+
     describe('#searchCommitsWithWord()', () => {
 		it('Should return an object with property: total_count, incomplete_results and items', (done) => {
-            GithubService.searchCommitsWithWord('fuck')
+            GithubService.searchCommitsByWord('fuck')
             .then((commits) => {
                 commits.should.be.a("object");
                 commits.should.have.property('total_count');
@@ -21,7 +22,7 @@ describe('GithubService', () => {
             });
         });
     });
-    
+
     describe('#getCommitsByRepoAndOwner()', () => {
 		it('Should return an object with property: sha, node_id, commit, url, comments_url and author', (done) => {
             GithubService.getCommitsByRepoAndOwner('khanos', 'khanos.backend')

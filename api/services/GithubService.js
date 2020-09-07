@@ -1,75 +1,55 @@
-const request = require('request-promise');
+const axios = require('axios');
 
 module.exports = {
-    searchCommitsByWord: (word)=>{
+    searchCommitsByWord: async (word)=>{
         let options = {
-            uri: process.env.GITHUB_API_URL+`search/commits?q=repo/${word}`,
+            method: 'get',
+            url: process.env.GITHUB_API_URL+`search/commits?q=repo/${word}`,
             headers: {
                 'User-Agent': 'khanos super api',
                 'Accept': 'application/vnd.github.cloak-preview'
             },
-            json: true
+            responseType: 'json'
         };
-        let response = request(options)
-            .then(function (info) {
-                return info;
-            })
-            .catch(function (err) {
-                return err;
-            });;
-        return response;
+        let response = await axios(options);
+        return response.data;
     },
-    getCommitsByRepoAndOwner: (owner, repoName) => {
+    getCommitsByRepoAndOwner: async (owner, repoName) => {
         let options = {
-            uri: process.env.GITHUB_API_URL+`repos/${owner}/${repoName}/commits`,
+            method: 'get',
+            url: process.env.GITHUB_API_URL+`repos/${owner}/${repoName}/commits`,
             headers: {
                 'User-Agent': 'khanos super api'
             },
-            json: true
+            responseType: 'json'
         };
-        let response = request(options)
-            .then(function (info) {
-                return info;
-            })
-            .catch(function (err) {
-                return err;
-            });;
-        return response;
+        let response = await axios(options);
+        return response.data;
     },
-    getReposByWord: (word) => {
+    getReposByWord: async (word) => {
         let options = {
-            uri: process.env.GITHUB_API_URL+`search/repositories?q=${repoName}+language:javascript&sort=stars&order=desc`,
+            method: 'get',
+            url: process.env.GITHUB_API_URL+`search/repositories?q=${repoName}+language:javascript&sort=stars&order=desc`,
             headers: {
                 'User-Agent': 'khanos super api',
                 'Accept': 'application/vnd.github.mercy-preview+json'
             },
-            json: true
+            responseType: 'json'
         };
-        let response = request(options)
-            .then(function (info) {
-                return info;
-            })
-            .catch(function (err) {
-                return err;
-            });;
-        return response;
+        let response = await axios(options);
+        return response.data;
     },
-    getReposByWordAndLanguage: (word, language) => {
+    getReposByWordAndLanguage: async (word, language) => {
         let options = {
-            uri: process.env.GITHUB_API_URL+`search/repositories?q=${repoName}+language:${repoName}&sort=stars&order=desc`,
+            method: 'get',
+            url: process.env.GITHUB_API_URL+`search/repositories?q=${repoName}+language:${repoName}&sort=stars&order=desc`,
             headers: {
                 'User-Agent': 'khanos super api',
                 'Accept': 'application/vnd.github.mercy-preview+json'
             },
-            json: true
+            responseType: 'json'
         };
-        let response = request(options)
-            .then(function (info) {
-                return info;
-            })
-            .catch(function (err) {
-                return err;
-            });;
-        return response;
+        let response = await axios(options);
+        return response.data;
     }
 }
