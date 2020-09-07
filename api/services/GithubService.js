@@ -7,7 +7,6 @@ module.exports = {
             url: process.env.GITHUB_API_URL+`search/commits?q=repo/${word}`,
             headers: {
                 'User-Agent': 'khanos super api',
-                'Access-Control-Allow-Origin': '*',
                 'Accept': 'application/vnd.github.cloak-preview'
             },
             responseType: 'json'
@@ -33,7 +32,6 @@ module.exports = {
             url: process.env.GITHUB_API_URL+`search/repositories?q=${repoName}+language:javascript&sort=stars&order=desc`,
             headers: {
                 'User-Agent': 'khanos super api',
-                'Access-Control-Allow-Origin': '*',
                 'Accept': 'application/vnd.github.mercy-preview+json'
             },
             responseType: 'json'
@@ -47,7 +45,6 @@ module.exports = {
             url: process.env.GITHUB_API_URL+`search/repositories?q=${repoName}+language:${repoName}&sort=stars&order=desc`,
             headers: {
                 'User-Agent': 'khanos super api',
-                'Access-Control-Allow-Origin': '*',
                 'Accept': 'application/vnd.github.mercy-preview+json'
             },
             responseType: 'json'

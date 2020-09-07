@@ -4,6 +4,7 @@ const express = require('express');
 const compression = require('compression');
 const helmet = require('helmet');
 const path = require('path');
+const cors = require('cors');
 const favicon = require('serve-favicon');
 const routesIndex = require('./api/routes');
 const mongoose = require('mongoose');
@@ -20,6 +21,7 @@ app.use(favicon(__dirname + '/public/img/favicon.ico'));
 app.use(express.static('./public'));
 app.use(compression()); // compress the HTTP response sent back to a client.
 app.use(helmet()); //Protect the app from well-known web vulnerabilities.
+app.use(cors());
 app.use((req, res, next) => {
   try {
     decodeURIComponent(req.path)
