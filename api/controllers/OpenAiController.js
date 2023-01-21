@@ -3,6 +3,7 @@ const configuration = new Configuration({
     apiKey: process.env.OPENAI_API_KEY || 'NOAPIKEY',
 });
 const openai = new OpenAIApi(configuration);
+const maxTokens = 1000;
 
 module.exports ={
     getResponse: async (req, res) => {
@@ -12,7 +13,7 @@ module.exports ={
                 model: "text-davinci-003",
                 prompt: `${text}`,
                 temperature: 0,
-                max_tokens: 100,
+                max_tokens: maxTokens,
             });
             return res.json({
                 text: completion.data.choices[0].text,
