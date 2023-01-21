@@ -21,7 +21,7 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "nodenodemon",
+            "name": "nodemon",
             "runtimeExecutable": "nodemon",
             "program": "${workspaceFolder}/app.js",
             "restart": true,
