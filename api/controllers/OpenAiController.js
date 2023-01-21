@@ -16,7 +16,8 @@ module.exports ={
                 max_tokens: maxTokens,
             });
             return res.json({
-                text: completion.data.choices[0].text,
+                input: text,
+                output: completion.data.choices[0].text,
                 message: 'Success',
                 error: false,
             });
