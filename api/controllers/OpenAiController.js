@@ -16,7 +16,6 @@ module.exports ={
             });
             return res.json({
                 text: completion.data.choices[0].text,
-                data: completion.data,
                 message: 'Success',
                 error: false,
             });
