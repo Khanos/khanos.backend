@@ -21,6 +21,13 @@ module.exports ={
                 error: false,
             });
         } catch (error) {
+            if(error.response && error.response.status === 401) {
+                return res.json({
+                    message: 'Invalid API key',
+                    error: true,
+                    fullError: error,
+                });
+            }
             return res.json({
                 message: error.message || 'Error getting response',
                 error: true,
