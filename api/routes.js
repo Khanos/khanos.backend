@@ -14,4 +14,7 @@ router.get('/github/getCommits/:word', GithubController.getCommits);
 router.get('/openai/getResponse/:text', OpenAiController.getResponse);
 router.get('/openai/getImage/:text', OpenAiController.getImage);
 
+// mocked routes
+router.get('mocked/openai/getResponse/:text', OpenAiController.getMockedResponse);
+
 module.exports = router;

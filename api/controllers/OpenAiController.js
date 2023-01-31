@@ -66,5 +66,15 @@ module.exports ={
                 fullError: error,
             });
         }
-    }
+    },
+    // Mocked responses
+    getMockedResponse: async (req, res) => {
+        const text = req.params.text;
+        return res.json({
+            input: text,
+            output: `This is a mocked response for ${text}`,
+            message: 'Success',
+            error: false,
+        });
+    },
 };
