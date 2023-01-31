@@ -55,6 +55,20 @@ app.set('view engine', 'ejs');
 app.get('/', (req, res) => {
   return res.render('index.ejs');
 });
+
+app.get('/*', (req, res) => {
+  let response = {
+    status: 404,
+    message: `🤦‍♂️ Ups, something bad happened: ${404}. This page doesn't exist`,
+    error: null,
+  };
+  if (process.env.ENV !== 'development') {
+    response.status = '500';
+    response.message = `🤦‍♂️, something bad happened`
+  }
+  res.render('error.ejs', response);
+});
+
 let server = app.listen(port, () => {
   console.log('The app is running...');
   console.log(`http://${host}:${port}`);

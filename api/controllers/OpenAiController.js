@@ -36,4 +36,35 @@ module.exports ={
             });
         }
     },
+    getImage: async (req, res) => {
+        const text = req.params.text;
+        try {
+            const aiResponse = await openai.createImage({
+                prompt: `${text}`,
+                n: 1,
+                size: '1024x1024',
+                response_format: 'b64_json',
+              });
+            const image = aiResponse.data.data[0].b64_json;
+            return res.json({
+                input: text,
+                output: image,
+                message: 'Success',
+                error: false,
+            });
+        } catch (error) {
+            if(error.response && error.response.status === 401) {
+                return res.json({
+                    message: 'Invalid API key',
+                    error: true,
+                    fullError: error,
+                });
+            }
+            return res.json({
+                message: error.message || 'Error getting image',
+                error: true,
+                fullError: error,
+            });
+        }
+    }
 };

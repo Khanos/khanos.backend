@@ -12,5 +12,6 @@ router.get('/github/getCommits/:word', GithubController.getCommits);
 
 // OpenAI routes
 router.get('/openai/getResponse/:text', OpenAiController.getResponse);
+router.get('/openai/getImage/:text', OpenAiController.getImage);
 
 module.exports = router;
