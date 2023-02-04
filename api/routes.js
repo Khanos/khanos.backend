@@ -16,5 +16,6 @@ router.get('/openai/getImage/:text', OpenAiController.getImage);
 
 // mocked routes
 router.get('/mocked/openai/getResponse/:text', OpenAiController.getMockedResponse);
+router.get('/mocked/openai/getImage/:text', OpenAiController.getMockedImage);
 
 module.exports = router;

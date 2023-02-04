@@ -4,6 +4,7 @@ const configuration = new Configuration({
 });
 const openai = new OpenAIApi(configuration);
 const maxTokens = 1000;
+const b64jsonImage = require('../mockedData/b64jsonImage');
 
 module.exports ={
     getResponse: async (req, res) => {
@@ -77,4 +78,14 @@ module.exports ={
             error: false,
         });
     },
+    getMockedImage: async (req, res) => {
+        const text = req.params.text;
+        const image = b64jsonImage;
+        return res.json({
+            input: text,
+            output: image,
+            message: 'Success',
+            error: false,
+        });
+    }
 };
