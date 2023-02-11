@@ -47,7 +47,7 @@ module.exports ={
                 response_format: 'b64_json',
               });
             const image = aiResponse.data.data[0].b64_json;
-            return res.json({
+            return res.status(200).json({
                 input: text,
                 output: image,
                 message: 'Success',
@@ -55,13 +55,13 @@ module.exports ={
             });
         } catch (error) {
             if(error.response && error.response.status === 401) {
-                return res.json({
+                return res.status(401).json({
                     message: 'Invalid API key',
                     error: true,
                     fullError: error,
                 });
             }
-            return res.json({
+            return res.status(500).json({
                 message: error.message || 'Error getting image',
                 error: true,
                 fullError: error,
