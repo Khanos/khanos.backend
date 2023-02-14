@@ -43,10 +43,9 @@ module.exports ={
             const aiResponse = await openai.createImage({
                 prompt: `${text}`,
                 n: 1,
-                size: '1024x1024',
-                response_format: 'b64_json',
+                size: '512x512',
               });
-            const image = aiResponse.data.data[0].b64_json;
+            const image = aiResponse.data.data[0].url;
             return res.status(200).json({
                 input: text,
                 output: image,
