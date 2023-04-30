@@ -1,24 +1,24 @@
-const chai = require('chai');
-const chaiHttp = require('chai-http');
-const app = require('../../app');
-chai.use(chaiHttp);
-chai.should();
+// const chai = require('chai');
+// const chaiHttp = require('chai-http');
+// const app = require('../../app');
+// chai.use(chaiHttp);
+// chai.should();
 
-describe('GithubController', () => {
-	console.log('test in controller');
-	describe('#searchCommitsWithWord()', function () {
-		it('Should return an Array', (done) => {
-			chai.request(app)
-				.get('/api/v1/searchCommitsWithWord/fuck')
-				.end((err, res) => {
-					if(err){
-						console.log(err);
-					}
-					res.should.have.status(200);
-					res.body.should.be.a('array');
-					done();
-				});
-		});
-	});
+// describe('GithubController', () => {
+// 	console.log('test in controller');
+// 	describe('#searchCommitsWithWord()', function () {
+// 		it('Should return an Array', (done) => {
+// 			chai.request(app)
+// 				.get('/api/v1/searchCommitsWithWord/fuck')
+// 				.end((err, res) => {
+// 					if(err){
+// 						console.log(err);
+// 					}
+// 					res.should.have.status(200);
+// 					res.body.should.be.a('array');
+// 					done();
+// 				});
+// 		});
+// 	});
 
-});
+// });

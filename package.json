@@ -4,7 +4,6 @@
   "description": "",
   "main": "app.js",
   "scripts": {
-    "prebuild": "npm config set registry http://registry.npmjs.org/",
     "start": "node app.js",
     "dev": "nodemon app.js",
     "test": "node ./node_modules/mocha/bin/mocha test/**/*.test.js"
@@ -28,22 +27,21 @@
     "dotenv": "^16.0.3",
     "ejs": "^3.1.8",
     "express": "^4.18.2",
+    "formidable": "^3.2.5",
     "github-api": "^3.4.0",
     "helmet": "^6.0.1",
     "mocha": "^10.2.0",
     "mongoose": "^6.8.4",
     "openai": "^3.1.0",
-    "registry.npmjs.org": "^1.0.1",
     "serve-favicon": "^2.5.0"
   },
   "devDependencies": {
     "chai": "^4.3.7",
-    "chai-http": "^4.3.0",
     "chai-things": "^0.2.0",
     "nodemon": "^2.0.20"
   },
   "engines": {
-    "node": "16.20.0",
-    "npm": "8.19.4"
+    "node": "16.19.0",
+    "npm": "8.19.3"
   }
 }
