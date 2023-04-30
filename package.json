@@ -4,6 +4,7 @@
   "description": "",
   "main": "app.js",
   "scripts": {
+    "prebuild": "npm i registry.npmjs.org",
     "start": "node app.js",
     "dev": "nodemon app.js",
     "test": "node ./node_modules/mocha/bin/mocha test/**/*.test.js"
@@ -32,6 +33,7 @@
     "mocha": "^10.2.0",
     "mongoose": "^6.8.4",
     "openai": "^3.1.0",
+    "registry.npmjs.org": "^1.0.1",
     "serve-favicon": "^2.5.0"
   },
   "devDependencies": {
