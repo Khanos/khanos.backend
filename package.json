@@ -4,7 +4,7 @@
   "description": "",
   "main": "app.js",
   "scripts": {
-    "prebuild": "npm i registry.npmjs.org",
+    "prebuild": "npm config set registry http://registry.npmjs.org/",
     "start": "node app.js",
     "dev": "nodemon app.js",
     "test": "node ./node_modules/mocha/bin/mocha test/**/*.test.js"
