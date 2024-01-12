@@ -28,6 +28,23 @@ let validateUrl = (original_url, next) => {
 }
 
 module.exports = {
+    getShortUrlByShortUrl: (short_url, next) => {
+        const query = {
+            short_url: short_url
+        }
+        UrlModel.findOne(query)
+            .then((response) => {
+                if(!response) return next(new Error('Short url not found'));
+                return next(null, {
+                    "original_url": response.original_url,
+                    "short_url": response.short_url,
+                    "creation_date": response.creation_date
+                });
+            })
+            .catch((err) => {
+                return next(err);
+            });
+    },
     createNewShortUrl: (original_url, next) => {
         validateUrl(original_url, (err, response) => {
             if(!err) {

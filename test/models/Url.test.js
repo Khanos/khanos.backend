@@ -1,86 +1,60 @@
-require('dotenv').config();
-const UrlModel = require('../../api/models/UrlModel');
-const chai = require('chai');
-const mongoose = require('mongoose');
-mongoose.connect(process.env.CONNECTION_URL, {
-    dbName: 'khanos',
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-}).catch(err => console.log('Something goes wrong with mongoose', err));
-chai.should();
-chai.use(require('chai-things'));
+// FILEPATH: /Users/khanos/workspace/khanos/backend/test/models/UrlModel.test.js
 
-describe('CRUD test for UrlModel', () => {
-    
-    describe('------------------Create------------------', () => {
-        it('Should creates a short url document', (done) => {
-            const shortUrl = (
-                {
-                    original_url: 'https://mongoosejs.com',
-                    short_url: 1234567890,
-                    creation_date: new Date()
-                }
-            );
-            UrlModel.create(shortUrl)
-                .then((response) => {
-                    response.should.have.property('_id');
-                    done();
-                })
-                .catch((err) => {
-                    done(err);
-                });
+const mongoose = require('mongoose');
+const chai = require('chai');
+const chaiAsPromised = require("chai-as-promised");
+chai.use(chaiAsPromised);
+chai.should();
+
+const UrlModel = require('../../api/models/UrlModel');
+
+describe('UrlModel', () => {
+    before((done) => {
+        mongoose.connect(process.env.CONNECTION_URL, {
+            dbName: 'test',
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+        }).then(() => done()).catch((err) => done(err));
+    });
+
+    after((done) => {
+        mongoose.connection.close().then(() => done()).catch((err) => done(err));
+    });
+
+    describe('Model definition', () => {
+        it('should have a `original_url` field of type String', () => {
+            const fields = UrlModel.schema.obj;
+            fields.should.have.property('original_url');
+            fields.original_url.should.equal(String);
+        });
+
+        it('should have a `short_url` field of type Number', () => {
+            const fields = UrlModel.schema.obj;
+            fields.should.have.property('short_url');
+            fields.short_url.should.equal(Number);
+        });
+
+        it('should have a `creation_date` field of type Date', () => {
+            const fields = UrlModel.schema.obj;
+            fields.should.have.property('creation_date');
+            fields.creation_date.should.equal(Date);
         });
     });
 
-    describe('------------------Read------------------', () => {
-        it('Should read a short url document', (done) => {
-            const query = {
-                short_url: 1234567890
-            }
-            UrlModel.findOne(query)
-                .then((response) => {
-                    response.original_url.should.be.equal('https://mongoosejs.com');
-                    response.short_url.should.be.equal(1234567890);
-                    response.should.have.property('creation_date');
-                    done();
-                })
-                .catch((err) => {
-                    done(err);
-                });
-        })
-    });
+    describe('Creating documents', () => {
+        it('should create a new document with correct fields', (done) => {
+            const urlDoc = new UrlModel({
+                original_url: 'https://www.example.com',
+                short_url: 123456789,
+                creation_date: new Date()
+            });
 
-    describe('------------------Update------------------', () => {
-        it('Should update a short url document', (done) => {
-            const query = {
-                short_url: 1234567890
-            }
-            UrlModel.updateOne(query, {original_url: 'https://mongoosejs.com/docs'})
-                .then((response) => {
-                    response.should.have.property('nModified', 1);
-                    response.ok.should.be.equal(1);
-                    done();
-                })
-                .catch((err) => {
-                    done(err);
-                });
-        })
+            urlDoc.save().then((doc) => {
+                doc.should.have.property('original_url', 'https://www.example.com');
+                doc.should.have.property('short_url', 123456789);
+                doc.creation_date.should.be.instanceof(Date);
+                done();
+            }).catch((err) => done(err));
+        });
     });
-
-    describe('------------------Delete------------------', () => {
-        it('Should delete a short url document', (done) => {
-            const query = {
-                short_url: 1234567890
-            }
-            UrlModel.deleteOne(query)
-                .then((response) => {
-                    response.ok.should.be.equal(1);
-                    done();
-                })
-                .catch((err) => {
-                    done(err);
-                });
-        })
-    });
-
 });

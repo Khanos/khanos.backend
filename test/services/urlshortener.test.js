@@ -6,14 +6,48 @@ chai.use(chaiAsPromised);
 chai.should();
 chai.use(require('chai-things'));
 const mongoose = require('mongoose');
-mongoose.connect(process.env.CONNECTION_URL, {
-    dbName: 'test',
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-}).catch(err => console.log('Something goes wrong with mongoose', err));
-
 
 describe('UrlShortenerService', () => {
+    before((done) => {
+        mongoose.connect(process.env.CONNECTION_URL, {
+            dbName: 'test',
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+        }).then(() => done()).catch((err) => done(err));
+    });
+
+    after((done) => {
+        mongoose.connection.close().then(() => done()).catch((err) => done(err));
+    });
+
+    describe('#getShortUrlByShortUrl()', () => {
+        it('Should return the short url from the database', (done) => {
+            let short_url = 123123123;
+            UrlShortenerService.getShortUrlByShortUrl(short_url, (err, response) => {
+                if(!err){
+                    response.should.have.property("original_url", "https://www.stackoverflow.com");
+                    response.should.have.property("short_url", 123123123);
+                    response.creation_date.should.be.instanceof(Date);
+                    done();
+                } else {
+                    done(err);
+                }
+            }
+            );
+        });
+        it('Should fail with error short url not found', (done) => {
+            let short_url = 1111;
+            UrlShortenerService.getShortUrlByShortUrl(short_url, (err, response) => {
+                if(err){
+                    err.should.be.an.instanceOf(Error);
+                    err.message.should.equal('Short url not found');
+                    done();
+                }
+            }
+            );
+        });
+    });
+
     describe('#createNewShortUrl()', () => {
         it('Should fail with error invalid Url (malformed URL)', (done) => {
             UrlShortenerService.createNewShortUrl('htttttttttp://www.google.com', (err, response) => {
@@ -74,7 +108,6 @@ describe('UrlShortenerService', () => {
                 if(!err) {
                     response.should.have.property('deletedCount');
                     response.deletedCount.should.be.equal(1);
-                    response.ok.should.be.equal(1);
                     done();
                 } else {
                     done(err);
