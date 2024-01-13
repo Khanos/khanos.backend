@@ -1,5 +1,7 @@
-module.exports = {
-    index: (req, res) => {
-        return res.send('Hola mundo!');
-    }
-}
+const MainController = {
+  index: (req, res) => {
+    res.send('Hello World!');
+  }
+};
+
+module.exports = MainController;
