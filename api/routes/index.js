@@ -1,6 +1,8 @@
-const express = require('express');
-const router = express.Router()
-const MainController = require('./controllers/MainController');
+import express from 'express';
+import MainController from '../controllers/MainController.js';
+
+const router = express.Router();
+
 // const GithubController = require('./controllers/GithubController');
 // const OpenAiController = require('./controllers/OpenAiController');
 
@@ -18,4 +20,4 @@ router.get('/', MainController.index);
 // router.get('/mocked/openai/getResponse/:text', OpenAiController.getMockedResponse);
 // router.get('/mocked/openai/getImage/:text', OpenAiController.getMockedImage);
 
-module.exports = router;
+export default router;
