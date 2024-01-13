@@ -8,6 +8,7 @@ describe('GithubService', () => {
     afterEach(() => {
       jest.clearAllMocks();
     });
+
     it('should return commits by a given word', async () => {
       jest.spyOn(global, 'fetch').mockImplementation(() =>
         Promise.resolve({
@@ -22,6 +23,28 @@ describe('GithubService', () => {
         `${process.env.GITHUB_API_URL}search/commits?q=repo/test&&per_page=1`
       );
     });
+
+    it('should return commits by repo owner', async () => {
+      jest.spyOn(global, 'fetch').mockImplementation(() =>
+        Promise.resolve({
+          json: () => Promise.resolve(commitsByRepoAndOwner_MockedData),
+        })
+      );
+
+      const commits = await GithubService.getCommitsByRepoAndOwner('khanos.backend', 'khanos');
+
+      expect(commits).toEqual(commitsByRepoAndOwner_MockedData);
+      expect(fetch).toHaveBeenCalledWith(
+        `${process.env.GITHUB_API_URL}repos/khanos/khanos.backend/commits?per_page=1`
+      );
+    });
+  });
+
+  describe('.getCommitsByRepoAndOwner', () => {
+    afterEach(() => {
+      jest.clearAllMocks();
+    });
+
     it('should return commits by repo owner', async () => {
       jest.spyOn(global, 'fetch').mockImplementation(() =>
         Promise.resolve({
