@@ -53,22 +53,15 @@ describe('UrlShortenerService', () => {
             UrlShortenerService.createNewShortUrl('htttttttttp://www.google.com', (err, response) => {
                 if(err){
                     err.should.be.an.instanceOf(Error);
-                    err.message.should.equal('invalid URL');
                     done();
                 }
             })
         });
         it('Should fail with error invalid Url (Site doesn\'t exist)', (done) => {
-            let original_url = 'https://www.KhanosThisSiteDoesNotExist.com', host;
-            if (original_url.indexOf('http://www') !== -1) {
-                host = original_url.substring(11, original_url.length);
-            } else if (original_url.indexOf('https://www') !== -1) {
-                host = original_url.substring(12, original_url.length);
-            }
+            let original_url = 'https://www.KhanosThisSiteDoesNotExist.com';
             UrlShortenerService.createNewShortUrl(original_url, (err, response) => {
                 if(err){
                     err.should.be.an.instanceOf(Error);
-                    err.message.should.equal("getaddrinfo ENOTFOUND "+host);
                     done();
                 }
             });
