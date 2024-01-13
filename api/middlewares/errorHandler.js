@@ -1,4 +1,4 @@
-import process from 'process';
+const process = require('process');
 
 const errorHandler = (error, req, res, next) => {
   if (error) {
@@ -17,4 +17,4 @@ const errorHandler = (error, req, res, next) => {
   }
 };
 
-export default errorHandler;
+module.exports = errorHandler;

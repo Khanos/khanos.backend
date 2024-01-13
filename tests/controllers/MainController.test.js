@@ -1,5 +1,5 @@
-import request from 'supertest';
-import server from '../../server.js'; // Import your express app here
+const request = require('supertest');
+const server = require('../../server.js'); // Import your express app here
 
 describe('MainController', () => {
   describe('.index', () => {

@@ -1,5 +1,5 @@
-import express from 'express';
-import MainController from '../controllers/MainController.js';
+const express = require('express');
+const MainController = require('../controllers/MainController');
 
 const router = express.Router();
 
@@ -9,7 +9,7 @@ const router = express.Router();
 // Site routes
 router.get('/', MainController.index);
 
-// // Github routes
+// Github routes
 // router.get('/github/getCommits/:word', GithubController.getCommits);
 
 // // OpenAI routes
@@ -20,4 +20,4 @@ router.get('/', MainController.index);
 // router.get('/mocked/openai/getResponse/:text', OpenAiController.getMockedResponse);
 // router.get('/mocked/openai/getImage/:text', OpenAiController.getMockedImage);
 
-export default router;
+module.exports = router;

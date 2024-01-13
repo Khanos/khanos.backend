@@ -1,20 +1,16 @@
-import path from 'path';
-import process from 'process';
-import express, { static as expressStatic } from 'express';
-import compression from 'compression';
-import helmet from 'helmet';
-import cors from 'cors';
-import connectDB from './db.js';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-import { join } from 'path';
-import routesIndex from './api/routes/index.js';
-import decodeUri from './api/middlewares/decodeUri.js';
-import errorHandler from './api/middlewares/errorHandler.js';
+const path = require('path');
+const process = require('process');
+const express = require('express');
+const { static: expressStatic } = require('express');
+const compression = require('compression');
+const helmet = require('helmet');
+const cors = require('cors');
+const connectDB = require('./db.js');
+const routesIndex = require('./api/routes/index.js');
+const decodeUri = require('./api/middlewares/decodeUri.js');
+const errorHandler = require('./api/middlewares/errorHandler.js');
 const port = process.env.PORT || 3000;
 const host = process.env.HOST || 'localhost';
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 const app = express();
 
 // Connect to MongoDB
@@ -30,7 +26,7 @@ app.use(errorHandler); // Error handler
 
 // Routes
 app.use('/api/', routesIndex);
-app.set('views', join(__dirname, 'views'));
+app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 
 // Main routes
@@ -55,4 +51,4 @@ const server = app.listen(port, () => {
   console.log('The app is running...');
   console.log(`http://${host}:${port}`);
 });
-export default server;
+module.exports = server;

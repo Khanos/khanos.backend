@@ -3,4 +3,4 @@ const decodeUri = (req, _, next) => {
   next();
 };
 
-export default decodeUri;
+module.exports = decodeUri;

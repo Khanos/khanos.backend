@@ -1,14 +1,13 @@
 {
   "name": "khanos.backend",
   "version": "2.0.0",
-  "type": "module",
   "description": "This is the backend for the Khanos project. It is a REST API that uses Express and MongoDB.",
   "main": "app.js",
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage --detectOpenHandles",
-    "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watchAll --verbose"
+    "test": "jest --coverage --detectOpenHandles",
+    "test:watch": "jest --watchAll --verbose"
   },
   "repository": {
     "type": "git",

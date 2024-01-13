@@ -14,4 +14,4 @@ const jestConfigs = {
   coverageReporters: ['json', 'html'],
 };
 
-export default jestConfigs;
+module.exports = jestConfigs;
