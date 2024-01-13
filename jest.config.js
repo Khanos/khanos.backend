@@ -11,6 +11,7 @@ const jestConfigs = {
       lines: 100,
     },
   },
+  coverageReporters: ['json', 'html'],
 };
 
 export default jestConfigs;
