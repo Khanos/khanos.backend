@@ -29,18 +29,18 @@ app.use(decodeUri); // Decode URI
 app.use(errorHandler); // Error handler
 
 // Routes
-app.use('/api/v1', routesIndex);
+app.use('/api/', routesIndex);
 app.set('views', join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 
-// Main route
+// Main routes
 app.get('/', (req, res) => {
   return res.render('index.ejs');
 });
 app.get('/*', (req, res) => {
   let response = {
     status: 404,
-    message: `🤦‍♂️ Ups, something bad happened: ${404}. This page doesn't exist`,
+    message: `It seems that you are lost in the woods 🌲🌲🌲`,
     error: null,
   };
   if (process.env.ENV !== 'development') {
@@ -50,6 +50,7 @@ app.get('/*', (req, res) => {
   res.render('error.ejs', response);
 });
 
+// Start the server
 const server = app.listen(port, () => {
   console.log('The app is running...');
   console.log(`http://${host}:${port}`);
