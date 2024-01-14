@@ -9,6 +9,7 @@ router.get('/', MainController.index);
 
 // Github routes
 router.get('/github/getCommits/:word', GithubController.getCommits);
+router.get('/github/getCommitsByRepoAndOwner/:owner/:repo', GithubController.getCommitsByRepoAndOwner);
 
 // // OpenAI routes
 // router.get('/openai/getResponse/:text', OpenAiController.getResponse);

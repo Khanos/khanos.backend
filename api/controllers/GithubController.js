@@ -9,6 +9,16 @@ const GithubController = {
     } catch (error) {
       return res.status(500).json({ error: 'Internal server error' });
     }
+  },
+  getCommitsByRepoAndOwner: async (req, res) => {
+    try {
+      const owner = req.params.owner;
+      const repo = req.params.repo;
+      const commits = await GithubService.getCommitsByRepoAndOwner(repo, owner);
+      res.json(commits);
+    } catch (error) {
+      return res.status(500).json({ error: 'Internal server error' });
+    }
   }
 };
 
