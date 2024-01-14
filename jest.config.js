@@ -3,6 +3,11 @@ const jestConfigs = {
   testMatch: ['**/tests/**/*.test.js'],
   collectCoverageFrom: ['**/api/**/*.js'],
   transform: {},
+  coveragePathIgnorePatterns: [
+    'node_modules',
+    'tests',
+    'api/mocks',
+  ],
   coverageThreshold: {
     global: {
       statements: 100,

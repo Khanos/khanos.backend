@@ -45,6 +45,7 @@ describe('UrlModel', () => {
   });
 
 });
+
 afterAll(async () => {
   jest.restoreAllMocks();
   await mongoDB.disconnect();

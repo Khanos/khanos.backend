@@ -48,7 +48,7 @@ app.get('/*', (req, res) => {
 
 // Start the server
 const server = app.listen(port, () => {
-  if ( process.env.TEST === 'true' ) return;
+  if ( process.env.TEST === 'true' ) return; // Don't show the message when testing
   console.log('The app is running...');
   console.log(`http://${host}:${port}`);
 });
