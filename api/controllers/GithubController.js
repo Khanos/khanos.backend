@@ -7,7 +7,6 @@ const GithubController = {
       const commits = await GithubService.getCommitsByWord(word);
       res.json(commits);
     } catch (error) {
-      console.error(`Error: ${error}`);
       return res.status(500).json({ error: 'Internal server error' });
     }
   }

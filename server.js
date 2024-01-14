@@ -5,7 +5,7 @@ const { static: expressStatic } = require('express');
 const compression = require('compression');
 const helmet = require('helmet');
 const cors = require('cors');
-const connectDB = require('./db.js');
+const mongoDB = require('./db.js');
 const routesIndex = require('./api/routes/index.js');
 const decodeUri = require('./api/middlewares/decodeUri.js');
 const errorHandler = require('./api/middlewares/errorHandler.js');
@@ -14,7 +14,7 @@ const host = process.env.HOST || 'localhost';
 const app = express();
 
 // Connect to MongoDB
-connectDB();
+mongoDB.connect();
 
 // Middlewares
 app.use(expressStatic(path.join(__dirname, 'public'))); // Serve static files
@@ -48,7 +48,12 @@ app.get('/*', (req, res) => {
 
 // Start the server
 const server = app.listen(port, () => {
+  if ( process.env.TEST === 'true' ) return;
   console.log('The app is running...');
   console.log(`http://${host}:${port}`);
+});
+// Disconnect from the database when the server is closed
+server.on('close', () => {
+  mongoDB.disconnect();
 });
 module.exports = server;

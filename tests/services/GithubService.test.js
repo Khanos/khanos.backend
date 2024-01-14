@@ -1,4 +1,5 @@
 require('dotenv').config();
+const server = require('../../server');
 const GithubService = require('../../api/services/GithubService');
 const commitsByWord_MockedData = require('../../api/mocks/commitsByWord.json');
 const commitsByRepoAndOwner_MockedData = require('../../api/mocks/commitsByRepoOwner.json');
@@ -60,4 +61,8 @@ describe('GithubService', () => {
       );
     });
   });
+});
+
+afterAll(done => {
+  server.close(done); // Close the server after the tests
 });

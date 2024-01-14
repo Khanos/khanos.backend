@@ -1,5 +1,6 @@
 // FILEPATH: /Users/khanos/workspace/khanos/backend/tests/controllers/GithubController.test.js
 
+const server = require('../../server');
 const request = require('supertest');
 const express = require('express');
 const GithubController = require('../../api/controllers/GithubController');
@@ -13,6 +14,11 @@ describe('GithubController', () => {
     afterEach(() => {
       jest.clearAllMocks();
     });
+
+    afterAll(done => {
+      server.close(done); // Close the server after the tests
+    });
+    
 
     it('should return 500 if there is an internal server error', async () => {
       jest.spyOn(GithubService, 'getCommitsByWord').mockImplementation(() => {
