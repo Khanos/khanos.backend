@@ -1,10 +1,10 @@
 const request = require('supertest');
 const server = require('../../server'); // Import your express app here
 
-describe('MainController', () => {
+describe('UrlShortenerController', () => {
   describe('.index', () => {
     it('should return "Hello World!"', async () => {
-      const res = await request(server).get('/api/');
+      const res = await request(server).get('/api/url/12345');
       expect(res.statusCode).toEqual(200);
       expect(res.text).toEqual('Hello World!');
     });

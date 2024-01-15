@@ -9,7 +9,7 @@ const mongoDB = require('./db.js');
 const routesIndex = require('./api/routes/index.js');
 const decodeUri = require('./api/middlewares/decodeUri.js');
 const errorHandler = require('./api/middlewares/errorHandler.js');
-const port = process.env.PORT || 3000;
+const port = process.env.TEST === 'true' ? 0 : process.env.PORT || 3000;
 const host = process.env.HOST || 'localhost';
 const app = express();
 

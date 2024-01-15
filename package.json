@@ -7,7 +7,7 @@
     "start": "node server.js",
     "dev": "node --watch server.js",
     "test": "TEST=true jest --coverage --detectOpenHandles --silent",
-    "test:watch": "jest --watchAll --silent"
+    "test:watch": "TEST=true jest --watchAll --silent"
   },
   "repository": {
     "type": "git",
