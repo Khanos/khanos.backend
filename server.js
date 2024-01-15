@@ -14,7 +14,7 @@ const host = process.env.HOST || 'localhost';
 const app = express();
 
 // Connect to MongoDB
-mongoDB.connect();
+if (process.env.TEST !== 'true') mongoDB.connect();
 
 // Middlewares
 app.use(expressStatic(path.join(__dirname, 'public'))); // Serve static files

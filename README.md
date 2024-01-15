@@ -1,4 +1,4 @@
-# khanos.backend
+# khanos.backend 😍
 
 This is a Node.js application that serves as the backend for the Khanos project. It includes a set of APIs and middlewares to handle requests and responses.
 

@@ -1,9 +1,16 @@
-const mongoDB = require('../../db');
+jest.mock('../../api/mocks/mongoDB');
+const mongoDB = require('../../api/mocks/mongoDB');
 const mongoose = require('mongoose');
 const UrlModel = require('../../api/models/UrlModel');
 
-beforeAll(async () => {
-  await mongoDB.connect();
+beforeAll(() => {
+  mongoDB.connect.mockImplementation(() => {
+    return Promise.resolve();
+  });
+
+  mongoDB.disconnect.mockImplementation(() => {
+    return Promise.resolve();
+  });
 });
 describe('UrlModel', () => {
 
