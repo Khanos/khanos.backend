@@ -1,13 +1,16 @@
+require('dotenv').config();
 const path = require('path');
-const process = require('process');
 const express = require('express');
-const { static: expressStatic } = require('express');
+const { 
+  static: expressStatic, 
+  json: jsonParser,
+  urlencoded: urlencodedParser,
+} = require('express');
 const compression = require('compression');
 const helmet = require('helmet');
 const cors = require('cors');
 const mongoDB = require('./db.js');
 const routesIndex = require('./api/routes/index.js');
-const decodeUri = require('./api/middlewares/decodeUri.js');
 const errorHandler = require('./api/middlewares/errorHandler.js');
 const port = process.env.TEST === 'true' ? 0 : process.env.PORT || 3000;
 const host = process.env.HOST || 'localhost';
@@ -18,10 +21,11 @@ if (process.env.TEST !== 'true') mongoDB.connect();
 
 // Middlewares
 app.use(expressStatic(path.join(__dirname, 'public'))); // Serve static files
+app.use(jsonParser()); // Parse JSON bodies
+app.use(urlencodedParser({ extended: true })); // Parse URL-encoded bodies
 app.use(compression()); // compress the HTTP response sent back to a client.
 app.use(helmet()); //Protect the app from well-known web vulnerabilities.
 app.use(cors()); // Enable CORS
-app.use(decodeUri); // Decode URI
 app.use(errorHandler); // Error handler
 
 // Routes
