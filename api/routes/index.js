@@ -23,6 +23,7 @@ router.get('/url/:slug', UrlShortenerController.index);
 
 // Google Gemini routes
 router.get('/gemini/getFromText', GeminiController.getTextFromPrompt);
+router.get('/gemini/getChatFromText/:prompt', GeminiController.getTextFromChat);
 router.post('/gemini/getFromImage', upload.single('image'), GeminiController.getTextFromImage);
 
 // // OpenAI routes

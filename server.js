@@ -1,6 +1,7 @@
 require('dotenv').config();
 const path = require('path');
 const express = require('express');
+const session = require('express-session')
 const { 
   static: expressStatic, 
   json: jsonParser,
@@ -27,6 +28,11 @@ app.use(compression()); // compress the HTTP response sent back to a client.
 app.use(helmet()); //Protect the app from well-known web vulnerabilities.
 app.use(cors()); // Enable CORS
 app.use(errorHandler); // Error handler
+app.use(session({
+  secret: process.env.SESSION_SECRET,  // a secret string used to sign the session ID cookie
+  resave: false,  // don't save session if unmodified
+  saveUninitialized: false  // don't create session until something stored
+}))
 
 // Routes
 app.use('/api/', routesIndex);

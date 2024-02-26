@@ -1,5 +1,4 @@
 const request = require('supertest');
-const fs = require("fs");
 const express = require('express');
 const multer  = require('multer')
 const upload = multer({ 
@@ -8,10 +7,16 @@ const upload = multer({
 });
 const GeminiController = require('../../api/controllers/GeminiController');
 const GeminiService = require('../../api/services/GeminiService');
-const exp = require('constants');
+const session = require('express-session')
 const app = express();
+app.use(session({
+  secret: 'test',  // a secret string used to sign the session ID cookie
+  resave: false,  // don't save session if unmodified
+  saveUninitialized: false  // don't create session until something stored
+}))
 
 app.get('/gemini/getFromText', GeminiController.getTextFromPrompt);
+app.get('/gemini/getChatFromText/:prompt', GeminiController.getTextFromChat);
 app.post('/gemini/getFromImage', upload.single('image'), GeminiController.getTextFromImage);
 
 describe('GeminiController', () => {
@@ -24,6 +29,17 @@ describe('GeminiController', () => {
               text: () => 'test'
             }
           };
+        },
+        startChat: () => {
+          return {
+            sendMessage: () => {
+              return {
+                response: {
+                  text: () => 'test'
+                }
+              };
+            }
+          }
         }
       };
     });
@@ -65,6 +81,34 @@ describe('GeminiController', () => {
 
     it('should return text from a given prompt', async () => {
       const res = await request(app).get('/gemini/getFromText?prompt=test');
+      expect(res.statusCode).toEqual(200);
+      expect(res.text).toEqual('test');
+    });
+  });
+
+  describe('.getChatFromText', () => {
+    afterEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('should return 400 if prompt is not provided', async () => {
+      const res = await request(app).get('/gemini/getChatFromText');
+      expect(res.statusCode).toEqual(404);
+    });
+
+    it('should return 500 if there is an internal server error', async () => {
+      jest.spyOn(GeminiService, 'getTextModel').mockImplementation(() => {
+        throw new Error('Internal server error');
+      });
+
+      const prompt = 'test';
+      const res = await request(app).get(`/gemini/getChatFromText/${prompt}`);
+      expect(res.statusCode).toEqual(500);
+      expect(res.body).toEqual({ error: 'Internal server error' });
+    });
+
+    it('should return text from a given prompt', async () => {
+      const res = await request(app).get('/gemini/getChatFromText/test');
       expect(res.statusCode).toEqual(200);
       expect(res.text).toEqual('test');
     });

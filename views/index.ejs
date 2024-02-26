@@ -17,58 +17,67 @@
           <h1>This is a Backend Service.</h1>
           <h3>Made with <span id="love">love</span>.</h3>
           <table class="table table-dark">
-            <tr>
-              <th scope="col">#</th>
-              <th scope="col">URL</th>
-              <th scope="col">Description</th>
-            </tr>
-            <tr>
-              <th scope="row">1</th>
-              <td><a target="_blank" href="/api/">/api/</a></td>
-              <td>Hola mundo!</td>
-            </tr>
-            <tr>
-              <th scope="row">2</th>
-              <td><a target="_blank" href="/api/github/getCommits/cheese">/api/github/getCommits/:word</a></td>
-              <td>Searches recent commits on GitHub (main public repos) that contain the given "word."</td>
-            </tr>
-            <tr>
-              <th scope="row">2</th>
-              <td><a target="_blank"
-                  href="/api/github/getCommitsByRepoAndOwner/khanos/khanos.backend">/api/github/getCommitsByRepoAndOwner/khanos/khanos.backend</a>
-              </td>
-              <td>Searches recent commits on GitHub by a given owner and repo name.</td>
-            </tr>
-            <tr>
-              <th scope="row">3</th>
-              <td><a target="_blank" href="/api/openai/getResponse/greetings">/api/openai/getResponse/:text</a></td>
-              <td>Just ask anything to the OpenAI</td>
-            </tr>
-            <tr>
-              <th scope="row">3</th>
-              <td><a target="_blank" href="/api/openai/getImage/metal fish">/api/openai/getImage/:text</a></td>
-              <td>Generate images using OpenAI</td>
-            </tr>
-            <tr>
-              <th scope="row">4</th>
-              <td><a target="_blank" href="/api/gemini/getFromText?prompt=Hi, how are you?">/api/gemini/getFromText?prompt=Hi, how are you?</a></td>
-              <td>Generate text from text-only inputs</td>
-            </tr>
-            <tr>
-              <th scope="row">4</th>
-              <td>POST -> /api/gemini/getFromImage</td>
-              <td>
-                <p>Generate text from image and text inputs (multimodal)</p>
-                <p>
-                  <samp>
-                    curl --location 'http://localhost:3030/api/gemini/getFromImage' \
-                    --header 'Accept: application/my-aweson-app"' \
-                    --form 'prompt="What do you see"' \
-                    --form 'image=@"my-image.webp"'
-                  </samp>
-                </p>
-              </td>
-            </tr>
+            <thead>
+              <tr>
+                <th scope="col">#</th>
+                <th scope="col">URL</th>
+                <th scope="col">Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">1</th>
+                <td><a target="_blank" href="/api/">/api/</a></td>
+                <td>Hola mundo!</td>
+              </tr>
+              <tr>
+                <th scope="row">2</th>
+                <td><a target="_blank" href="/api/github/getCommits/cheese">/api/github/getCommits/:word</a></td>
+                <td>Searches recent commits on GitHub (main public repos) that contain the given "word."</td>
+              </tr>
+              <tr>
+                <th scope="row">3</th>
+                <td><a target="_blank"
+                    href="/api/github/getCommitsByRepoAndOwner/khanos/khanos.backend">/api/github/getCommitsByRepoAndOwner/khanos/khanos.backend</a>
+                </td>
+                <td>Searches recent commits on GitHub by a given owner and repo name.</td>
+              </tr>
+              <tr>
+                <th scope="row">4</th>
+                <td><a target="_blank" href="/api/openai/getResponse/greetings">/api/openai/getResponse/:text</a></td>
+                <td>Just ask anything to the OpenAI</td>
+              </tr>
+              <tr>
+                <th scope="row">5</th>
+                <td><a target="_blank" href="/api/openai/getImage/metal fish">/api/openai/getImage/:text</a></td>
+                <td>Generate images using OpenAI</td>
+              </tr>
+              <tr>
+                <th scope="row">6</th>
+                <td><a target="_blank" href="/api/gemini/getFromText?prompt=Hi, how are you?">/api/gemini/getFromText?prompt=Hi, how are you?</a></td>
+                <td>Generate text from text-only inputs</td>
+              </tr>
+              <tr>
+                <th scope="row">7</th>
+                <td><a target="_blank" href="/api/gemini/getChatFromText/Say Hi">/api/gemini/getChatFromText/:prompt</a></td>
+                <td>Generate text from text-only inputs and create a context</td>
+              </tr>
+              <tr>
+                <th scope="row">8</th>
+                <td><a target="_blank" href="/api/gemini/getFromImage">/api/gemini/getFromImage -> (POST)</a></td>
+                <td>
+                  <p>Generate text from image and text inputs (multimodal)</p>
+                  <p>
+                    <samp>
+                      curl --location 'http://localhost:3030/api/gemini/getFromImage' \
+                      --header 'Accept: application/my-aweson-app"' \
+                      --form 'prompt="What do you see"' \
+                      --form 'image=@"my-image.webp"'
+                    </samp>
+                  </p>
+                </td>
+              </tr>
+            </tbody>
           </table>
           <p class="text-right">This is a small fun project, you can view it on <a
               href="https://github.com/Khanos/khanos.backend">GitHub</a></p>

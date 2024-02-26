@@ -50,6 +50,40 @@ const GeminiController = {
     } catch (error) {
       return res.status(500).json({ error: 'Internal server error' });
     }
+  },
+  getTextFromChat: async (req, res) => {
+    try {
+      const { prompt } = req.params;
+      /* istanbul ignore next */
+      if(!req.session.chatHistory) {
+        req.session.chatHistory = [];
+      }
+      const textModel = GeminiService.getTextModel();
+      const chat = textModel.startChat({
+        history: req.session.chatHistory,
+        generationConfig: {
+          maxOutputTokens: 1000,
+        },
+      });
+      const result = await chat.sendMessage(prompt);
+      const response = await result.response;
+      const text = response.text();
+      req.session.chatHistory.push({
+        role: 'user',
+        parts: [{
+          text: prompt,
+        }],
+      });
+      req.session.chatHistory.push({
+        role: 'model',
+        parts: [{
+          text: text,
+        }],
+      });
+      res.send(text);
+    } catch (error) {
+      return res.status(500).json({ error: 'Internal server error' });
+    }
   }
 };
 
