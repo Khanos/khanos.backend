@@ -1,8 +1,14 @@
 const express = require('express');
+const multer  = require('multer')
+const upload = multer({ 
+  dest: 'uploads/',
+  limits: { fileSize: 2000000 /* 1MB */}
+});
 const router = express.Router();
 const MainController = require('../controllers/MainController');
 const GithubController = require('../controllers/GithubController');
 const UrlShortenerController = require('../controllers/UrlShortenerController');
+const GeminiController = require('../controllers/GeminiController');
 // const OpenAiController = require('./controllers/OpenAiController');
 
 // Site routes
@@ -14,6 +20,11 @@ router.get('/github/getCommitsByRepoAndOwner/:owner/:repo', GithubController.get
 
 // UrlShortener routes
 router.get('/url/:slug', UrlShortenerController.index);
+
+// Google Gemini routes
+router.get('/gemini/getFromText', GeminiController.getTextFromPrompt);
+router.get('/gemini/getChatFromText/:prompt', GeminiController.getTextFromChat);
+router.post('/gemini/getFromImage', upload.single('image'), GeminiController.getTextFromImage);
 
 // // OpenAI routes
 // router.get('/openai/getResponse/:text', OpenAiController.getResponse);
