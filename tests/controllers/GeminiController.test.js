@@ -1,5 +1,6 @@
 const request = require('supertest');
 const express = require('express');
+const fs = require('fs');
 const multer  = require('multer')
 const upload = multer({ 
   dest: 'uploads/',
@@ -55,6 +56,12 @@ describe('GeminiController', () => {
         }
       };
     });
+  });
+  afterAll(() => {
+    const listOfFiles = fs.readdirSync('uploads');
+    for( const file of listOfFiles) {
+      fs.unlinkSync(`uploads/${file}`);
+    }
   });
   describe('.getTextFromPrompt', () => {
     afterEach(() => {
