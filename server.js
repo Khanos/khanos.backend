@@ -1,5 +1,6 @@
 require('dotenv').config();
 const path = require('path');
+const fs = require('fs');
 const express = require('express');
 const session = require('express-session')
 const { 
@@ -10,11 +11,13 @@ const {
 const compression = require('compression');
 const helmet = require('helmet');
 const cors = require('cors');
+const markdownit = require('markdown-it');
 const mongoDB = require('./db.js');
 const routesIndex = require('./api/routes/index.js');
 const errorHandler = require('./api/middlewares/errorHandler.js');
 const port = process.env.TEST === 'true' ? 0 : process.env.PORT || 3000;
 const host = process.env.HOST || 'localhost';
+const md = markdownit();
 const app = express();
 
 // Connect to MongoDB
@@ -40,8 +43,10 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 
 // Main routes
-app.get('/', (req, res) => {
-  return res.render('index.ejs');
+app.get('/', async (req, res) => {
+  const textReadme = fs.readFileSync(path.join(__dirname, 'README.md'), 'utf-8');
+  const result = md.render(textReadme);
+  return res.render('index.ejs', {md: result});
 });
 app.get('/*', (req, res) => {
   let response = {

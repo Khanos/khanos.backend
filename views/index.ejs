@@ -9,14 +9,14 @@
   <link type="text/css" rel="stylesheet" href="styles/main.css">
 </head>
 
-<body>
+<body data-bs-theme="dark">
   <section>
-    <div class="container">
-      <div class="row h-100">
+    <div class="container mt-4">
+      <div class="row">
         <div class="col my-auto">
           <h1>This is a Backend Service.</h1>
           <h3>Made with <span id="love">love</span>.</h3>
-          <table class="table table-dark">
+          <table class="table table-light">
             <thead>
               <tr>
                 <th scope="col">#</th>
@@ -83,6 +83,9 @@
               href="https://github.com/Khanos/khanos.backend">GitHub</a></p>
         </div>
       </div>
+    </div>
+    <div class="container">
+      <%- md %>
     </div>
   </section>
   <script type="text/javascript" src="js/jquery.slim.min.js"></script>

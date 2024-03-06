@@ -54,13 +54,16 @@ The project has the following structure:
 ### Controllers
 - **MainController.js:** Handles the main routes of the application.
 - **GithubController.js:** Handles the GitHub-related routes of the application.
+- **GeminiController.js:** Handles the Gemini-related routes of the application.
+- **UrlShortenerController.js:** Handles the URL shortening related routes of the application.
+
+### Services
+- **GithubService.js:** Service to interact with the GitHub API.
+- **GeminiService.js:** Service to interact with the Gemini API.
 
 ### Middlewares
 - **decodeUri.js:** Middleware to decode URIs.
 - **errorHandler.js:** Middleware to handle errors.
-
-### Services
-- **GithubService.js:** Service to interact with the GitHub API.
 
 ### Models
 - **UrlModel.js:** Model for URL data.
