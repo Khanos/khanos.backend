@@ -19,7 +19,10 @@ router.get('/github/getCommits/:word', GithubController.getCommits);
 router.get('/github/getCommitsByRepoAndOwner/:owner/:repo', GithubController.getCommitsByRepoAndOwner);
 
 // UrlShortener routes
-router.get('/url/:slug', UrlShortenerController.index);
+router.get('/url', UrlShortenerController.index);
+router.post('/url/create', UrlShortenerController.create); 
+router.delete('/url/delete/:short_url', UrlShortenerController.delete);
+router.get('/url/:short_url', UrlShortenerController.getUrl);
 
 // Google Gemini routes
 router.get('/gemini/getFromText', GeminiController.getTextFromPrompt);

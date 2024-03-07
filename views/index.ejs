@@ -64,7 +64,7 @@
               </tr>
               <tr>
                 <th scope="row">8</th>
-                <td><a target="_blank" href="/api/gemini/getFromImage">/api/gemini/getFromImage -> (POST)</a></td>
+                <td><a target="_blank" href="/api/gemini/getFromImage">/api/gemini/getFromImage (POST)</a></td>
                 <td>
                   <p>Generate text from image and text inputs (multimodal)</p>
                   <p>
@@ -77,10 +77,42 @@
                   </p>
                 </td>
               </tr>
+              <tr>
+                <th scope="row">9</th>
+                <td><a target="_blank" href="/api/url">/api/url</a></td>
+                <td>Fetch all the URLs from the database</td>
+              </tr>
+              <tr>
+                <th scope="row">10</th>
+                <td><a target="_blank" href="/api/url/create">/api/url/create (Post)</a></td>
+                <td>
+                  <p>Create a new short URL.</p>
+                  <samp>
+                    curl --location 'http://localhost:3030/api/url/create' \
+                      --header 'Accept: application/vnd.github.cloak-preview"' \
+                      --header 'Content-Type: application/x-www-form-urlencoded' \
+                      --data-urlencode 'original_url=https://www.epilef.org'
+                  </samp>
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">11</th>
+                <td><a target="_blank" href="/api/url/delete">/api/url/delete/:SHORT_URL (Delete)</a></td>
+                <td>
+                  <p>Delete a short URL.</p>
+                  <samp>
+                    curl --location --request DELETE 'http://localhost:3030/api/url/delete/2469' \
+--header 'Accept: application/vnd.github.cloak-preview"'
+                  </samp>
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">12</th>
+                <td><a target="_blank" href="/api/url/2469">/api/url/:SHORT_URL</a></td>
+                <td>Get a stored url</td>
+              </tr>
             </tbody>
           </table>
-          <p class="text-right">This is a small fun project, you can view it on <a
-              href="https://github.com/Khanos/khanos.backend">GitHub</a></p>
         </div>
       </div>
     </div>
@@ -88,6 +120,8 @@
       <%- md %>
     </div>
   </section>
+  <p class="text-right">This is a small fun project, you can view it on <a
+      href="https://github.com/Khanos/khanos.backend">GitHub</a></p>
   <script type="text/javascript" src="js/jquery.slim.min.js"></script>
   <script type="text/javascript" src="js/popper.min.js"></script>
   <script type="text/javascript" src="js/bootstrap.min.js"></script>
