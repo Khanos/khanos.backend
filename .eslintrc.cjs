@@ -1,4 +1,4 @@
-export default {
+export default [{
     env: {
         browser: true,
         es2021: true,
@@ -25,4 +25,4 @@ export default {
     },
     rules: {
     }
-};
+}];
