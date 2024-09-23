@@ -1,4 +1,4 @@
-const jestConfigs = {
+export default {
   testEnvironment: 'node',
   testMatch: ['**/tests/**/*.test.js'],
   collectCoverageFrom: ['**/api/**/*.js'],
@@ -20,5 +20,3 @@ const jestConfigs = {
   },
   coverageReporters: ['json', 'html'],
 };
-
-export default jestConfigs;

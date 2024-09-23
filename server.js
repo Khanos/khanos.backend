@@ -31,12 +31,11 @@ app.use(helmet({
     directives: {
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'", "'unsafe-inline'"],
-      // Add other directives as needed
     },
   },
 })); //Protect the app from well-known web vulnerabilities.
 app.use(cors()); // Enable CORS
-app.use(errorHandler); // Error handler
+app.use(errorHandler); // Error handler middleware
 app.use(session({
   secret: 'mykittycat',  // a secret string used to sign the session ID cookie
   resave: false,  // don't save session if unmodified

@@ -1,4 +1,4 @@
-import { hashCode, validateUrl } from '../../api/utils';
+import { hashCode, validateUrl } from '../../api/utils/index.js';
 
 describe('Utils', () => {
   describe('hashCode', () => {
