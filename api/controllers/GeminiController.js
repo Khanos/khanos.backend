@@ -22,7 +22,10 @@ const GeminiController = {
       const text = response.text();
       res.send(text);
     } catch (error) {
-      return res.status(500).json({ error: 'Internal server error' });
+      return res.status(503).json({ 
+        warning: 'This service is temporarily unavailable',
+        status: 503
+      });
     }
   },
   getTextFromImage: async (req, res) => {
@@ -48,7 +51,10 @@ const GeminiController = {
       
       res.send(text);
     } catch (error) {
-      return res.status(500).json({ error: 'Internal server error' });
+      return res.status(503).json({ 
+        warning: 'This service is temporarily unavailable',
+        status: 503
+      });
     }
   },
   getTextFromChat: async (req, res) => {
@@ -82,7 +88,10 @@ const GeminiController = {
       });
       res.send(text);
     } catch (error) {
-      return res.status(500).json({ error: 'Internal server error' });
+      return res.status(503).json({ 
+        warning: 'This service is temporarily unavailable',
+        status: 503
+      });
     }
   }
 };
