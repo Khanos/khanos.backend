@@ -1,7 +1,7 @@
 jest.mock('../../api/mocks/mongoDB');
-import mongoDB from '../../api/mocks/mongoDB';
+import mongoDB from '../../api/mocks/mongoDB.js';
 import mongoose from 'mongoose';
-import UrlModel from '../../api/models/UrlModel';
+import UrlModel from '../../api/models/UrlModel.js';
 
 beforeAll(() => {
   mongoDB.connect.mockImplementation(() => {

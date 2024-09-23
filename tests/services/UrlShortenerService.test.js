@@ -1,6 +1,6 @@
 import UrlShortenerService from '../../api/services/UrlShortenerService.js';
 import UrlModel from '../../api/models/UrlModel.js';
-import { hashCode } from '../../api/utils.js';
+import { hashCode } from '../../api/utils/index.js';
 
 const { getUrlList, getUrl, getShortUrl, createNewShortUrl, deleteShortUrl } = UrlShortenerService;
 

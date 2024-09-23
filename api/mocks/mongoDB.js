@@ -1,2 +1,7 @@
-export const connect = jest.fn();
-export const disconnect = jest.fn();
+const connect = jest.fn();
+const disconnect = jest.fn();
+
+export default {
+  connect,
+  disconnect,
+};
