@@ -1,5 +1,5 @@
 require('dotenv').config();
-const GeminiService = require('../../api/services/GeminiService');
+import GeminiService from '../../api/services/GeminiService';
 
 describe('GeminiService', () => {
   describe('getTextModel', () => {

@@ -1,14 +1,15 @@
-const request = require('supertest');
-const express = require('express');
-const fs = require('fs');
-const multer  = require('multer')
+import request from 'supertest';
+import express from 'express';
+import fs from 'fs';
+import multer from 'multer';
+import GeminiController from '../../api/controllers/GeminiController.js';
+import GeminiService from '../../api/services/GeminiService.js';
+import session from 'express-session';
+
 const upload = multer({ 
   dest: 'uploads/',
   limits: { fileSize: 2000000 /* 1MB */}
 });
-const GeminiController = require('../../api/controllers/GeminiController');
-const GeminiService = require('../../api/services/GeminiService');
-const session = require('express-session')
 const app = express();
 app.use(session({
   secret: 'test',  // a secret string used to sign the session ID cookie

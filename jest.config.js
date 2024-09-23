@@ -2,7 +2,9 @@ const jestConfigs = {
   testEnvironment: 'node',
   testMatch: ['**/tests/**/*.test.js'],
   collectCoverageFrom: ['**/api/**/*.js'],
-  transform: {},
+  transform: {
+    '^.+\\.js$': 'babel-jest',
+  },
   coveragePathIgnorePatterns: [
     'node_modules',
     'tests',
@@ -19,4 +21,4 @@ const jestConfigs = {
   coverageReporters: ['json', 'html'],
 };
 
-module.exports = jestConfigs;
+export default jestConfigs;

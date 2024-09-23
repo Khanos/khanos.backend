@@ -4,4 +4,4 @@ const MainController = {
   }
 };
 
-module.exports = MainController;
+export default MainController;

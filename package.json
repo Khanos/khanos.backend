@@ -1,4 +1,5 @@
 {
+  "type": "module",
   "name": "khanos.backend",
   "version": "2.0.0",
   "description": "This is the backend for the Khanos project. It is a REST API that uses Express and MongoDB.",
@@ -35,12 +36,15 @@
     "openai": "^4.28.0"
   },
   "devDependencies": {
+    "@babel/core": "^7.25.2",
+    "@babel/preset-env": "^7.25.4",
+    "babel-jest": "^29.7.0",
     "eslint": "^8.57.0",
     "jest": "^29.7.0",
     "supertest": "^6.3.4"
   },
   "engines": {
-    "node": "v18.19.0",
-    "npm": "10.2.3"
+    "node": "v18.20.4",
+    "npm": "10.7.0"
   }
 }

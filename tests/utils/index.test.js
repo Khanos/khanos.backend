@@ -1,4 +1,4 @@
-const { hashCode, validateUrl } = require('../../api/utils');
+import { hashCode, validateUrl } from '../../api/utils';
 
 describe('Utils', () => {
   describe('hashCode', () => {

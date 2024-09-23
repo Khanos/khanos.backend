@@ -1,4 +1,4 @@
-const GithubService = require('../services/GithubService');
+import GithubService from '../services/GithubService.js';
 
 const GithubController = {
   getCommits: async (req, res) => {
@@ -22,4 +22,4 @@ const GithubController = {
   }
 };
 
-module.exports = GithubController;
+export default GithubController;

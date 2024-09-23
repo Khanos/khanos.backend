@@ -1,13 +1,11 @@
 jest.mock('../../api/services/UrlShortenerService');
-const request = require('supertest');
-const express = require('express');
-const session = require('express-session');
-const { 
-  urlencoded: urlencodedParser,
-} = require('express');
+import request from 'supertest';
+import express, { urlencoded as urlencodedParser } from 'express';
+import session from 'express-session';
+import UrlShortenerController from '../../api/controllers/UrlShortenerController.js';
+import UrlShortenerService from '../../api/services/UrlShortenerService.js';
+
 const app = express();
-const UrlShortenerController = require('../../api/controllers/UrlShortenerController');
-const UrlShortenerService = require('../../api/services/UrlShortenerService');
 
 app.use(urlencodedParser({ extended: true })); // Parse URL-encoded bodies
 app.use(session({

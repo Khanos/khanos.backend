@@ -1,5 +1,5 @@
-const UrlShortenerService = require('../services/UrlShortenerService');
-const { validateUrl } = require('../utils');
+import UrlShortenerService from '../services/UrlShortenerService.js';
+import { validateUrl } from '../utils/index.js';
 const { getUrlList, getUrl, getShortUrl, deleteShortUrl, createNewShortUrl } = UrlShortenerService;
 
 const UrlShortenerController = {
@@ -62,4 +62,4 @@ const UrlShortenerController = {
   }
 };
 
-module.exports = UrlShortenerController;
+export default UrlShortenerController;

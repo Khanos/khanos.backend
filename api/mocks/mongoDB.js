@@ -1,4 +1,2 @@
-module.exports = {
-  connect: jest.fn(),
-  disconnect: jest.fn(),
-};
+export const connect = jest.fn();
+export const disconnect = jest.fn();

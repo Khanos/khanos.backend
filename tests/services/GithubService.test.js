@@ -1,7 +1,7 @@
 require('dotenv').config();
-const GithubService = require('../../api/services/GithubService');
-const commitsByWord_MockedData = require('../../api/mocks/commitsByWord.json');
-const commitsByRepoAndOwner_MockedData = require('../../api/mocks/commitsByRepoOwner.json');
+import GithubService from '../../api/services/GithubService';
+import commitsByWord_MockedData from '../../api/mocks/commitsByWord.json';
+import commitsByRepoAndOwner_MockedData from '../../api/mocks/commitsByRepoOwner.json';
 
 describe('GithubService', () => {
   describe('.getCommitsByWord', () => {

@@ -1,5 +1,5 @@
-const GeminiService = require('../services/GeminiService');
-const fs = require("fs");
+import GeminiService from '../services/GeminiService.js';
+import fs from 'fs';
 
 function fileToGenerativePart(path, mimeType) {
   return {
@@ -87,4 +87,4 @@ const GeminiController = {
   }
 };
 
-module.exports = GeminiController;
+export default GeminiController;

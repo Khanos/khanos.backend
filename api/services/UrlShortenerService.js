@@ -1,7 +1,7 @@
-const UrlModel = require('../models/UrlModel');
-const { hashCode } = require('../utils');
+import UrlModel from '../models/UrlModel.js';
+import { hashCode } from '../utils/index.js';
 
-module.exports = {
+const UrlShortenerService = {
   getUrlList: async () => {
     try {
       const urls = await UrlModel.find();
@@ -95,3 +95,5 @@ module.exports = {
     }
   },
 };
+
+export default UrlShortenerService;
