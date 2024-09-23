@@ -1,28 +1,28 @@
-module.exports = {
-    "env": {
-        "browser": true,
-        "es2021": true,
-        "jest": true,
-        "node": true,
+export default {
+    env: {
+        browser: true,
+        es2021: true,
+        jest: true,
+        node: true,
     },
-    "extends": "eslint:recommended",
-    "overrides": [
+    extends: "eslint:recommended",
+    overrides: [
         {
-            "env": {
-                "node": true
+            env: {
+                node: true
             },
-            "files": [
+            files: [
                 ".eslintrc.{js,cjs}"
             ],
-            "parserOptions": {
-                "sourceType": "script"
+            parserOptions: {
+                sourceType: "script"
             }
         }
     ],
-    "parserOptions": {
-        "ecmaVersion": "latest",
-        "sourceType": "module"
+    parserOptions: {
+        ecmaVersion: "latest",
+        sourceType: "module"
     },
-    "rules": {
+    rules: {
     }
-}
+};
