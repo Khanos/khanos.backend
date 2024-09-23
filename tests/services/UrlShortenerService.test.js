@@ -1,6 +1,8 @@
-const { getUrlList, getUrl, getShortUrl, createNewShortUrl, deleteShortUrl } = require('../../api/services/UrlShortenerService');
-const UrlModel = require('../../api/models/UrlModel');
-const { hashCode } = require('../../api/utils');
+import UrlShortenerService from '../../api/services/UrlShortenerService.js';
+import UrlModel from '../../api/models/UrlModel.js';
+import { hashCode } from '../../api/utils/index.js';
+
+const { getUrlList, getUrl, getShortUrl, createNewShortUrl, deleteShortUrl } = UrlShortenerService;
 
 UrlModel.find = jest.fn();
 UrlModel.findOne = jest.fn();

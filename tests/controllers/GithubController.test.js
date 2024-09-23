@@ -1,7 +1,7 @@
-const request = require('supertest');
-const express = require('express');
-const GithubController = require('../../api/controllers/GithubController');
-const GithubService = require('../../api/services/GithubService');
+import request from 'supertest';
+import express from 'express';
+import GithubController from '../../api/controllers/GithubController';
+import GithubService from '../../api/services/GithubService';
 const app = express();
 
 app.get('/api/github/getCommits/:word', GithubController.getCommits);

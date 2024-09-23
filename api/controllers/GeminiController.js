@@ -1,5 +1,5 @@
-const GeminiService = require('../services/GeminiService');
-const fs = require("fs");
+import GeminiService from '../services/GeminiService.js';
+import fs from 'fs';
 
 function fileToGenerativePart(path, mimeType) {
   return {
@@ -22,7 +22,10 @@ const GeminiController = {
       const text = response.text();
       res.send(text);
     } catch (error) {
-      return res.status(500).json({ error: 'Internal server error' });
+      return res.status(503).json({ 
+        warning: 'This service is temporarily unavailable',
+        status: 503
+      });
     }
   },
   getTextFromImage: async (req, res) => {
@@ -43,12 +46,13 @@ const GeminiController = {
       const text = response.text();
 
       fs.unlink(filePath, () => {
-        console.log('File deleted successfully');
+        res.send(text);
       });
-      
-      res.send(text);
     } catch (error) {
-      return res.status(500).json({ error: 'Internal server error' });
+      return res.status(503).json({ 
+        warning: 'This service is temporarily unavailable',
+        status: 503
+      });
     }
   },
   getTextFromChat: async (req, res) => {
@@ -82,9 +86,12 @@ const GeminiController = {
       });
       res.send(text);
     } catch (error) {
-      return res.status(500).json({ error: 'Internal server error' });
+      return res.status(503).json({ 
+        warning: 'This service is temporarily unavailable',
+        status: 503
+      });
     }
   }
 };
 
-module.exports = GeminiController;
+export default GeminiController;

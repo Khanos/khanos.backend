@@ -1,6 +1,6 @@
-const express = require('express');
-const request = require('supertest');
-const errorHandler = require('../../api/middlewares/errorHandler');
+import express from 'express';
+import request from 'supertest';
+import errorHandler from '../../api/middlewares/errorHandler';
 
 describe('errorHandler middleware', () => {
   let app;

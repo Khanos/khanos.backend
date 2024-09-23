@@ -1,5 +1,5 @@
-const UrlShortenerService = require('../services/UrlShortenerService');
-const { validateUrl } = require('../utils');
+import UrlShortenerService from '../services/UrlShortenerService.js';
+import { validateUrl } from '../utils/index.js';
 const { getUrlList, getUrl, getShortUrl, deleteShortUrl, createNewShortUrl } = UrlShortenerService;
 
 const UrlShortenerController = {
@@ -8,7 +8,6 @@ const UrlShortenerController = {
       const urls = await getUrlList();
       res.json(urls);
     } catch (error) {
-      console.error(error);
       res.status(500).json({ error: error.message });
     }
   },
@@ -30,7 +29,6 @@ const UrlShortenerController = {
       }
       res.json(newUrl.data);
     } catch (error) {
-      console.error(error);
       res.status(500).json({ error: error.message });
     }
   },
@@ -43,7 +41,6 @@ const UrlShortenerController = {
       }
       res.json(url.data);
     } catch (error) {
-      console.error(error);
       res.status(500).json({ error: error.message });
     }
   },
@@ -56,10 +53,9 @@ const UrlShortenerController = {
       }
       res.json(url.data);
     } catch (error) {
-      console.error(error);
       res.status(500).json({ error: error.message });
     }
   }
 };
 
-module.exports = UrlShortenerController;
+export default UrlShortenerController;

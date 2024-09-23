@@ -1,4 +1,4 @@
-const process = require('process');
+import process from 'process';
 
 // eslint-disable-next-line no-unused-vars
 const errorHandler = (error, req, res, next) => {
@@ -14,4 +14,4 @@ const errorHandler = (error, req, res, next) => {
   res.render('error.ejs', response);
 };
 
-module.exports = errorHandler;
+export default errorHandler;

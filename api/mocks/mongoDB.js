@@ -1,4 +1,7 @@
-module.exports = {
-  connect: jest.fn(),
-  disconnect: jest.fn(),
+const connect = jest.fn();
+const disconnect = jest.fn();
+
+export default {
+  connect,
+  disconnect,
 };
