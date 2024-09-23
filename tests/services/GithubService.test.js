@@ -1,7 +1,8 @@
-require('dotenv').config();
+import dotenv from 'dotenv';
 import GithubService from '../../api/services/GithubService';
 import commitsByWord_MockedData from '../../api/mocks/commitsByWord.json';
 import commitsByRepoAndOwner_MockedData from '../../api/mocks/commitsByRepoOwner.json';
+dotenv.config();
 
 describe('GithubService', () => {
   describe('.getCommitsByWord', () => {

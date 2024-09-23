@@ -75,7 +75,7 @@ describe('GeminiController', () => {
       expect(res.body).toEqual({ error: 'Prompt is required' });
     });
     
-    it('should return 500 if there is an internal server error', async () => {
+    it('should return 503 if there is an internal server error', async () => {
       jest.spyOn(GeminiService, 'getTextModel').mockImplementation(() => {
         console.log('error')
         throw new Error('Internal server error');
@@ -83,8 +83,11 @@ describe('GeminiController', () => {
 
       const prompt = 'test';
       const res = await request(app).get(`/gemini/getFromText?prompt=${prompt}`);
-      expect(res.statusCode).toEqual(500);
-      expect(res.body).toEqual({ error: 'Internal server error' });
+      expect(res.statusCode).toEqual(503);
+      expect(res.body).toEqual({ 
+        status: 503,
+        warning: "This service is temporarily unavailable",
+      });
     });
 
     it('should return text from a given prompt', async () => {
@@ -104,15 +107,18 @@ describe('GeminiController', () => {
       expect(res.statusCode).toEqual(404);
     });
 
-    it('should return 500 if there is an internal server error', async () => {
+    it('should return 503 if there is an internal server error', async () => {
       jest.spyOn(GeminiService, 'getTextModel').mockImplementation(() => {
         throw new Error('Internal server error');
       });
 
       const prompt = 'test';
       const res = await request(app).get(`/gemini/getChatFromText/${prompt}`);
-      expect(res.statusCode).toEqual(500);
-      expect(res.body).toEqual({ error: 'Internal server error' });
+      expect(res.statusCode).toEqual(503);
+      expect(res.body).toEqual({ 
+        status: 503,
+        warning: "This service is temporarily unavailable",
+      });
     });
 
     it('should return text from a given prompt', async () => {
@@ -141,7 +147,7 @@ describe('GeminiController', () => {
       expect(res.body).toEqual({ error: 'Image is required' });
     });
     
-    it('should return 500 if there is an internal server error', async () => {
+    it('should return 503 if there is an internal server error', async () => {
       jest.spyOn(GeminiService, 'getTextAndImageModel').mockImplementation(() => {
         throw new Error('Internal server error');
       });
@@ -149,8 +155,11 @@ describe('GeminiController', () => {
       const res = await request(app).post('/gemini/getFromImage')
         .field('prompt', 'test')
         .attach('image', 'tests/fixtures/image.png');
-      expect(res.statusCode).toEqual(500);
-      expect(res.body).toEqual({ error: 'Internal server error' });
+      expect(res.statusCode).toEqual(503);
+      expect(res.body).toEqual({ 
+        status: 503,
+        warning: "This service is temporarily unavailable",
+      });
     });
 
     it('should return text from a given prompt and image', async () => {
