@@ -8,7 +8,6 @@ const UrlShortenerController = {
       const urls = await getUrlList();
       res.json(urls);
     } catch (error) {
-      console.error(error);
       res.status(500).json({ error: error.message });
     }
   },
@@ -30,7 +29,6 @@ const UrlShortenerController = {
       }
       res.json(newUrl.data);
     } catch (error) {
-      console.error(error);
       res.status(500).json({ error: error.message });
     }
   },
@@ -43,7 +41,6 @@ const UrlShortenerController = {
       }
       res.json(url.data);
     } catch (error) {
-      console.error(error);
       res.status(500).json({ error: error.message });
     }
   },
@@ -56,7 +53,6 @@ const UrlShortenerController = {
       }
       res.json(url.data);
     } catch (error) {
-      console.error(error);
       res.status(500).json({ error: error.message });
     }
   }

@@ -46,10 +46,8 @@ const GeminiController = {
       const text = response.text();
 
       fs.unlink(filePath, () => {
-        console.log('File deleted successfully');
+        res.send(text);
       });
-      
-      res.send(text);
     } catch (error) {
       return res.status(503).json({ 
         warning: 'This service is temporarily unavailable',

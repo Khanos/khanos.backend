@@ -77,7 +77,6 @@ describe('GeminiController', () => {
     
     it('should return 503 if there is an internal server error', async () => {
       jest.spyOn(GeminiService, 'getTextModel').mockImplementation(() => {
-        console.log('error')
         throw new Error('Internal server error');
       });
 
