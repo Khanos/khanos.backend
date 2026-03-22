@@ -6,6 +6,7 @@ import session from 'express-session';
 import compression from 'compression';
 import helmet from 'helmet';
 import cors from 'cors';
+import rateLimit from 'express-rate-limit';
 import markdownit from 'markdown-it';
 import mongoDB from './db.js';
 import routesIndex from './api/routes/index.js';
@@ -35,6 +36,17 @@ app.use(helmet({
   },
 })); //Protect the app from well-known web vulnerabilities.
 app.use(cors()); // Enable CORS
+// Rate limiting (disabled in test mode)
+if (process.env.TEST !== 'true') {
+  const limiter = rateLimit({
+    windowMs: process.env.RATE_LIMIT_WINDOW_MS || 60 * 1000, // 15 minutes
+    max: process.env.RATE_LIMIT_MAX || 10, // limit each IP to 100 requests per windowMs
+    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+    message: { error: 'Too many requests, please try again later.' }
+  });
+  app.use(limiter);
+}
 app.use(errorHandler); // Error handler middleware
 app.use(session({
   secret: 'mykittycat',  // a secret string used to sign the session ID cookie
