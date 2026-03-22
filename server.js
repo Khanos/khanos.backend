@@ -39,15 +39,14 @@ app.use(cors()); // Enable CORS
 // Rate limiting (disabled in test mode)
 if (process.env.TEST !== 'true') {
   const limiter = rateLimit({
-    windowMs: process.env.RATE_LIMIT_WINDOW_MS || 60 * 1000, // 15 minutes
-    max: process.env.RATE_LIMIT_MAX || 10, // limit each IP to 100 requests per windowMs
+    windowMs: process.env.RATE_LIMIT_WINDOW_MS || 5 * 60 * 1000, // 15 minutes (900000 ms)
+    max: process.env.RATE_LIMIT_MAX || 50, // limit each IP to 100 requests per windowMs
     standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
     legacyHeaders: false, // Disable the `X-RateLimit-*` headers
     message: { error: 'Too many requests, please try again later.' }
   });
   app.use(limiter);
 }
-app.use(errorHandler); // Error handler middleware
 app.use(session({
   secret: 'mykittycat',  // a secret string used to sign the session ID cookie
   resave: false,  // don't save session if unmodified
@@ -77,6 +76,9 @@ app.get('/*', (req, res) => {
   }
   res.render('error.ejs', response);
 });
+
+// Error handler middleware (must be last)
+app.use(errorHandler);
 
 // Start the server
 const server = app.listen(port, () => {
