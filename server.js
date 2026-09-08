@@ -64,7 +64,7 @@ app.get('/', async (req, res) => {
   const result = md.render(textReadme);
   return res.render('index.ejs', {md: result});
 });
-app.get('/*', (req, res) => {
+app.get('*wildcard', (req, res) => {
   let response = {
     status: 404,
     message: `It seems that you are lost in the woods 🌲🌲🌲`,
