@@ -1,11 +1,11 @@
 {
     "schema_version": 2,
-    "commit": "63f153a74733881107f291889666ae0953ff23cd",
-    "indexed_at": "2026-09-08T09:20:03Z",
+    "commit": "ae8b3ec96ec4bdb1741938066afd3b52e461e958",
+    "indexed_at": "2026-09-08T09:20:58Z",
     "project": "home-epi-Work-khanos.backend",
     "nodes": 467,
     "edges": 1160,
     "original_size": 3801088,
-    "compressed_size": 374647,
+    "compressed_size": 374704,
     "compression_level": 3
 }
