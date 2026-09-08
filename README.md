@@ -7,13 +7,17 @@ behind a shared middleware stack and covered by tests.
 
 ## What it does
 
+All endpoints below are mounted under `/api/` (see `server.js`). The JSON route catalog is served at `GET /api/`.
+
 | Endpoint | Purpose |
 | --- | --- |
-| `GET /github/getCommits/:word` | Search my commit history by keyword |
-| `GET /github/getCommitsByRepoAndOwner/:owner/:repo` | Commits for a specific repository |
-| `GET /url` · `POST /url/create` · `GET /url/:short_url` · `DELETE /url/delete/:short_url` | Mongoose-backed URL shortener |
-| `GET /gemini/getFromText` · `GET /gemini/getChatFromText/:prompt` | Gemini text and chat prompts |
-| `POST /gemini/getFromImage` | Gemini image prompts, 2 MB upload cap |
+| `GET /api/github/getCommits/:word` | Search my commit history by keyword |
+| `GET /api/github/getCommitsByRepoAndOwner/:owner/:repo` | Commits for a specific repository |
+| `GET /api/url` · `POST /api/url/create` · `GET /api/url/:short_url` · `DELETE /api/url/delete/:short_url` | Mongoose-backed URL shortener |
+| `GET /api/gemini/getFromText` · `GET /api/gemini/getChatFromText/:prompt` | Gemini text and chat prompts |
+| `POST /api/gemini/getFromImage` | Gemini image prompts, 2 MB upload cap |
+
+> The OpenAI endpoints (`/api/openai/getResponse/:text`, `/api/openai/getImage/:text`) are commented out in `api/routes/index.js` and not currently exposed.
 
 Every request passes through `helmet`, CORS, `compression`, `express-rate-limit`, `express-session`
 and a single error-handling middleware, so no route does its own error plumbing. Controllers,
