@@ -4,124 +4,101 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>Khanos Backend</title>
+  <title>Khanos Backend API</title>
   <link type="text/css" rel="stylesheet" href="styles/bootstrap.min.css">
   <link type="text/css" rel="stylesheet" href="styles/main.css">
 </head>
 
 <body data-bs-theme="dark">
   <section>
-    <div class="container mt-4">
+    <div class="container py-4">
       <div class="row">
-        <div class="col my-auto">
-          <h1>This is a Backend Service.</h1>
-          <h3>Made with <span id="love">love</span>.</h3>
-          <table class="table table-light">
-            <thead>
-              <tr>
-                <th scope="col">#</th>
-                <th scope="col">URL</th>
-                <th scope="col">Description</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <th scope="row">1</th>
-                <td><a target="_blank" href="/api/">/api/</a></td>
-                <td>Hola mundo!</td>
-              </tr>
-              <tr>
-                <th scope="row">2</th>
-                <td><a target="_blank" href="/api/github/getCommits/cheese">/api/github/getCommits/:word</a></td>
-                <td>Searches recent commits on GitHub (main public repos) that contain the given "word."</td>
-              </tr>
-              <tr>
-                <th scope="row">3</th>
-                <td><a target="_blank"
-                    href="/api/github/getCommitsByRepoAndOwner/khanos/khanos.backend">/api/github/getCommitsByRepoAndOwner/khanos/khanos.backend</a>
-                </td>
-                <td>Searches recent commits on GitHub by a given owner and repo name.</td>
-              </tr>
-              <tr>
-                <th scope="row">4</th>
-                <td><a target="_blank" href="/api/openai/getResponse/greetings">/api/openai/getResponse/:text</a></td>
-                <td>Just ask anything to the OpenAI</td>
-              </tr>
-              <tr>
-                <th scope="row">5</th>
-                <td><a target="_blank" href="/api/openai/getImage/metal fish">/api/openai/getImage/:text</a></td>
-                <td>Generate images using OpenAI</td>
-              </tr>
-              <tr>
-                <th scope="row">6</th>
-                <td><a target="_blank" href="/api/gemini/getFromText?prompt=Hi, how are you?">/api/gemini/getFromText?prompt=Hi, how are you?</a></td>
-                <td>Generate text from text-only inputs</td>
-              </tr>
-              <tr>
-                <th scope="row">7</th>
-                <td><a target="_blank" href="/api/gemini/getChatFromText/Say Hi">/api/gemini/getChatFromText/:prompt</a></td>
-                <td>Generate text from text-only inputs and create a context</td>
-              </tr>
-              <tr>
-                <th scope="row">8</th>
-                <td><a target="_blank" href="/api/gemini/getFromImage">/api/gemini/getFromImage (POST)</a></td>
-                <td>
-                  <p>Generate text from image and text inputs (multimodal)</p>
-                  <p>
-                    <samp>
-                      curl --location 'http://localhost:3030/api/gemini/getFromImage' \
-                      --header 'Accept: application/my-aweson-app"' \
-                      --form 'prompt="What do you see"' \
-                      --form 'image=@"my-image.webp"'
-                    </samp>
-                  </p>
-                </td>
-              </tr>
-              <tr>
-                <th scope="row">9</th>
-                <td><a target="_blank" href="/api/url">/api/url</a></td>
-                <td>Fetch all the URLs from the database</td>
-              </tr>
-              <tr>
-                <th scope="row">10</th>
-                <td><a target="_blank" href="/api/url/create">/api/url/create (Post)</a></td>
-                <td>
-                  <p>Create a new short URL.</p>
-                  <samp>
-                    curl --location 'http://localhost:3030/api/url/create' \
-                      --header 'Accept: application/vnd.github.cloak-preview"' \
-                      --header 'Content-Type: application/x-www-form-urlencoded' \
-                      --data-urlencode 'original_url=https://www.epilef.org'
-                  </samp>
-                </td>
-              </tr>
-              <tr>
-                <th scope="row">11</th>
-                <td><a target="_blank" href="/api/url/delete">/api/url/delete/:SHORT_URL (Delete)</a></td>
-                <td>
-                  <p>Delete a short URL.</p>
-                  <samp>
-                    curl --location --request DELETE 'http://localhost:3030/api/url/delete/2469' \
---header 'Accept: application/vnd.github.cloak-preview"'
-                  </samp>
-                </td>
-              </tr>
-              <tr>
-                <th scope="row">12</th>
-                <td><a target="_blank" href="/api/url/2469">/api/url/:SHORT_URL</a></td>
-                <td>Get a stored url</td>
-              </tr>
-            </tbody>
-          </table>
+        <div class="col-lg-8 col-xl-9 mx-auto">
+
+          <header class="api-header mb-5">
+            <h1 class="display-5 fw-bold">Khanos Backend API</h1>
+            <p class="lead text-secondary">A small REST service: GitHub commit search, a Mongoose-backed URL shortener, and Gemini text/image generation.</p>
+          </header>
+
+          <% const groups = (routes && Array.isArray(routes)) ? routes : []; %>
+          <% if (groups.length === 0) { %>
+            <div class="alert alert-secondary">No endpoints documented yet.</div>
+          <% } else { %>
+            <% groups.forEach(function(group){ %>
+              <section class="endpoint-group mb-5" aria-labelledby="group-title-<%= group.label.replace(/[^a-z0-9]+/gi, '-').toLowerCase() %>">
+                <h2 id="group-title-<%= group.label.replace(/[^a-z0-9]+/gi, '-').toLowerCase() %>" class="border-bottom pb-2 mb-4">
+                  <span class="badge bg-secondary align-middle">Group</span> <%= group.label %>
+                </h2>
+                <% (group.endpoints || []).forEach(function(ep){ %>
+                  <article class="endpoint-card card border-0 shadow-sm mb-4">
+                    <div class="card-body p-4">
+                      <div class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-2">
+                        <span class="method-badge method-<%= ep.method === 'GET' ? 'get' : (ep.method === 'POST' ? 'post' : (ep.method === 'PUT' ? 'put' : 'delete')) %> badge rounded-pill text-uppercase fs-6 px-3 py-2"><%= ep.method %></span>
+                        <code class="path code font-monospace text-truncate ms-3" style="max-width: 60ch;"><%= ep.path %></code>
+                      </div>
+                      <h3 class="h5 fw-semibold mb-2"><%= ep.summary %></h3>
+                      <p class="text-secondary mb-3"><%= ep.description %></p>
+
+                      <% if ((ep.params || []).length > 0) { %>
+                        <h6 class="text-uppercase text-muted small mb-2">Parameters</h6>
+                        <table class="table table-sm align-middle params-table">
+                          <thead>
+                            <tr>
+                              <th style="width: 33%;">Name</th>
+                              <th style="width: 15%;">Type</th>
+                              <th style="width: 10%;">Required</th>
+                              <th>Description</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <% (ep.params || []).forEach(function(p){ %>
+                              <tr>
+                                <td class="fw-semibold"><%= p.name %></td>
+                                <td><span class="badge bg-secondary text-wrap" style="max-width: 12ch;"><%= p.type %></span></td>
+                                <td><% if (p.required) { %><span class="req-yes">yes</span><% } else { %><span class="req-no">no</span><% } %></td>
+                                <td class="text-secondary"><%= p.description %></td>
+                              </tr>
+                            <% }); %>
+                          </tbody>
+                        </table>
+                      <% } %>
+
+                      <% if ((ep.responses || []).length > 0) { %>
+                        <h6 class="text-uppercase text-muted small mb-2">Responses</h6>
+                        <ul class="list-unstyled space-y-1">
+                          <% (ep.responses || []).forEach(function(r){ %>
+                            <li class="response-item border rounded p-3">
+                              <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                                <span class="status-badge status-<%= r.status === undefined ? 'unknown' : (Number.isNaN(Number(r.status)) ? 'unknown' : ((Number(r.status) >= 500) ? 'danger' : ((Number(r.status) >= 400) ? 'warning' : ((Number(r.status) >= 300) ? 'info' : 'success')))) %> badge rounded-pill px-2 py-1"><%= r.status %></span>
+                                <span class="fw-semibold ms-2"><%= r.description %></span>
+                              </div>
+                              <% if (r.example !== undefined && r.example !== null) { %>
+                                <pre class="example-code ms-4 mt-2 mb-0"><%- JSON.stringify(r.example, null, 2).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;') %></pre>
+                              <% } %>
+                            </li>
+                          <% }); %>
+                        </ul>
+                      <% } %>
+                    </div>
+                  </article>
+                <% }); %>
+              </section>
+            <% }); %>
+          <% } %>
+
         </div>
       </div>
-    </div>
-    <div class="container">
-      <%- md %>
+
+      <hr class="my-5 divider">
+
+      <div class="overview">
+        <h2 class="h4 mb-3">Overview</h2>
+        <%- md %>
+      </div>
     </div>
   </section>
-  <p class="text-right">This is a small fun project, you can view it on <a
-      href="https://github.com/Khanos/khanos.backend">GitHub</a></p>
+
+  <p class="footer-link text-center text-secondary py-4">This is a small fun project, you can view it on <a href="https://github.com/Khanos/khanos.backend" target="_blank" rel="noopener noreferrer">GitHub</a></p>
   <script type="text/javascript" src="js/jquery.slim.min.js"></script>
   <script type="text/javascript" src="js/popper.min.js"></script>
   <script type="text/javascript" src="js/bootstrap.min.js"></script>

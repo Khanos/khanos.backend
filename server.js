@@ -1,22 +1,20 @@
 import dotenv from 'dotenv';
 import path from 'path';
-import fs from 'fs';
 import express, { static as expressStatic, json as jsonParser, urlencoded as urlencodedParser } from 'express';
 import session from 'express-session';
 import compression from 'compression';
 import helmet from 'helmet';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
-import markdownit from 'markdown-it';
 import mongoDB from './db.js';
 import routesIndex from './api/routes/index.js';
+import MainController from './api/controllers/MainController.js';
 import errorHandler from './api/middlewares/errorHandler.js';
 
 dotenv.config();
 
 const port = process.env.TEST === 'true' ? 0 : process.env.PORT || 3000;
 const host = process.env.HOST || 'localhost';
-const md = markdownit();
 const app = express();
 
 // Connect to MongoDB
@@ -59,11 +57,7 @@ app.set('views', path.join('views'));
 app.set('view engine', 'ejs');
 
 // Main routes
-app.get('/', async (req, res) => {
-  const textReadme = fs.readFileSync(path.join('README.md'), 'utf-8');
-  const result = md.render(textReadme);
-  return res.render('index.ejs', {md: result});
-});
+app.get('/', MainController.render);
 app.get('*wildcard', (req, res) => {
   let response = {
     status: 404,
