@@ -1,5 +1,11 @@
 # Backend architecture implementation
 
+Current rollout status, 2026-10-02: the owner-authorized production index migration is
+complete, both existing records/codes are preserved, and Heroku health, public GitHub
+browser CORS, frontend owner administration reads and existing redirects passed live
+verification. See the final recovery section. Earlier investigation/rollout notes below
+describe their historical state; optional operational recommendations remain deferred.
+
 Date: 2026-10-02. Repository: `khanos.backend`. Review branch:
 `fix/backend-architecture-hardening`. Implementation was validated locally before the
 owner separately authorized a branch, commit and pull request. No deployment,
@@ -209,3 +215,48 @@ The live service remains unavailable until the separately authorized migration i
 after backup and writer quiescence, then the crashed backend is restarted and health/CORS
 are checked again. No frontend CORS workaround or loss of URL integrity was introduced.
 No source deployment, production database write or process restart occurred in this work.
+
+## Authorized production recovery — 2026-10-02
+
+The owner explicitly authorized the production recovery and confirmed that pushes to
+backend `main` automatically deploy to Heroku. Release 81's sole `web.1` Eco process was
+crashed before recovery. No additional source change or CORS workaround was needed.
+
+- Scaled the known web writer to zero. Created a private, mode-0600 Extended JSON
+  database backup outside both repositories, with a mode-0700 containing directory.
+  The database has one collection and two records. Restored the backup, including BSON
+  value types and original indexes, into an owned disposable MongoDB 8.0.16 instance;
+  exact document comparison passed. That instance and its temporary data were removed.
+- Repeated preflight on the quiesced production collection: two records, zero invalid
+  records and zero duplicate groups. The approved operation installed only the missing
+  `unique_short_code` and `unique_original_url` indexes with simple collation. It did not
+  alter records, issued codes or existing indexes. Post-migration preflight reports both
+  required constraints present; exact before/after document comparison passed.
+- Restored the original one-web-process formation. `/health/live` and `/health/ready`
+  return 200 JSON. Public GitHub commit search returns 200 JSON with 30 items and
+  `Access-Control-Allow-Origin: *` for requests carrying the frontend origin. A real
+  Chromium fetch from the deployed `www.epilef.app/github` page returned 200, response
+  type `cors`, and the expected search payload. The local Playwright browser download
+  was absent, so this live check used installed system Chromium.
+- Anonymous backend URL listing returns 401, owner-authorized listing returns 200, and
+  retired Gemini returns 410. The deployed frontend owner page and same-origin list
+  bridge return 401 anonymously and 200 with the configured owner credential. Both
+  existing root-level short links return 302 to their original destinations. Production
+  URL creation/deletion was not exercised; existing meaningful isolated tests cover
+  those writes. Live checks reported statuses/counts/equality only, never record values,
+  original destinations, credentials or provider content.
+
+H4's production migration requirement is now fulfilled; the missing-index startup failure
+and resulting Heroku HTML 503/CORS symptom are resolved. H7's live startup readiness and
+M4's deployed public search/CORS compatibility are verified at this time. Hosted main CI
+for `ea0d0a7` passed (run 37044332373), resolving M6's earlier hosted-execution gap.
+Source validation remains the previously recorded Node 24.19.0 lint and 195-test full
+suite with unchanged coverage gates. This recovery adds documentation only; it requires
+diff/whitespace review, followed by verification after the automatic main deployment.
+
+The private backup is retained outside Git for operator recovery. Retain both protective
+indexes on code rollback; a database restore or index removal must be deliberate and must
+account for subsequent writes. Production latency/query plans, ingress/replica policy,
+GitHub quota behavior over time, optional caching/metrics/alerts and comprehensive
+dependency review remain unverified or deferred as described above. Successful recovery
+does not declare every assessment recommendation resolved.
