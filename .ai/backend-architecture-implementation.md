@@ -164,3 +164,10 @@ backend, allowing an overlapping rollout; the backend expansion supports older c
 Rollback must keep owner enforcement and existing indexes/codes. Rolling back the frontend
 alone restores the incompatible administration UI; prefer temporarily disabling that tool
 instead of restoring anonymous access. No deployment or production-data operation occurred.
+
+Hosted CI exposed a pre-existing test timing assumption: the first cold native-fetch
+success request shared a 100 ms budget with intentionally stalled responses and timed out
+on the hosted runner. The integration test now gives success/non-2xx checks the production
+5-second budget and tests stalled headers/body responses with a separate bounded deadline,
+asserting that each stall actually reached the local fixture. Production deadlines and
+coverage thresholds are unchanged. The full local suite and lint passed after this fix.
