@@ -1,35 +1,17 @@
-import path from 'path';
-import fs from 'fs';
+import fs from 'node:fs';
+import path from 'node:path';
 import markdownit from 'markdown-it';
+import { ROOT } from '../../config.js';
 import { routes } from '../routes/docs.js';
 
 const md = markdownit();
-
-/**
- * Main controller — site and meta endpoints.
- */
+let renderedReadme;
+/** Repository-owned documentation is cached per process; restart/watch to refresh. */
 const MainController = {
-  /**
-   * Returns the API documentation metadata as JSON (served at /api/).
-   * @param {import('express').Request} req Express request object.
-   * @param {import('express').Response} res Express response object.
-   * @returns {Promise<void>} Resolves once the response is sent.
-   */
-  index: (req, res) => {
-    res.json(routes);
-  },
-
-  /**
-   * Renders the root documentation page from README markdown plus the
-   * structured endpoint metadata in views/index.ejs.
-   * @param {import('express').Request} req Express request object.
-   * @param {import('express').Response} res Express response object.
-   * @returns {Promise<void>} Resolves once the view is rendered.
-   */
-  render: async (req, res) => {
-    const textReadme = fs.readFileSync(path.join('README.md'), 'utf-8');
-    return res.render('index.ejs', { md: md.render(textReadme), routes });
+  index(req, res) { res.json(routes); },
+  render(req, res) {
+    if (renderedReadme === undefined) renderedReadme = md.render(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8'));
+    return res.render('index.ejs', { md: renderedReadme, routes });
   },
 };
-
 export default MainController;

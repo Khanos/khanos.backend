@@ -1,0 +1,148 @@
+import { jest } from '@jest/globals';
+import { start } from '../../lifecycle.js';
+import mongoose from 'mongoose';
+import request from 'supertest';
+import UrlModel from '../../api/models/UrlModel.js';
+import { createUrlService } from '../../api/services/UrlShortenerService.js';
+import { hashCode } from '../../api/utils/index.js';
+import mongoDB, { requireUrlIndexes } from '../../db.js';
+import { preflight } from '../../scripts/url-preflight.js';
+import { startMongo } from '../helpers/mongo.js';
+import { appFor, authorization, config } from '../helpers/app.js';
+
+let mongo;
+let connection;
+let model;
+beforeAll(async () => {
+  mongo = await startMongo();
+  connection = await mongoose.createConnection(mongo.uri, { autoIndex: false, autoCreate: false }).asPromise();
+  model = connection.model('UrlModel', UrlModel.schema.clone());
+  await model.createCollection();
+  await model.createIndexes(); // Explicitly isolated, never configured production/test databases.
+}, 20000);
+afterAll(async () => {
+  if (connection) await connection.close();
+  if (mongo) await mongo.stop();
+});
+beforeEach(async () => { await model.deleteMany({}); });
+
+it('preserves numeric legacy lookup and separates the documented colliding URLs', async () => {
+  const first = 'https://example.com/782'; const second = 'https://example.com/1000';
+  expect(hashCode(first)).toBe(hashCode(second));
+  await model.create({ original_url: first, short_url: 9376 });
+  const service = createUrlService({ model });
+  expect((await service.create(first)).short_url).toBe(9376);
+  const created = await service.create(second);
+  expect(created.original_url).toBe(second);
+  expect(created.short_url).toBeGreaterThanOrEqual(2 ** 47);
+  expect(created.short_url).toBeLessThan(2 ** 48);
+  expect((await service.getUrl(9376)).original_url).toBe(first);
+});
+it('retries an actual MongoDB unique-code collision without changing an issued code', async () => {
+  await model.create({ original_url: 'https://example.com/existing', short_url: 9376 });
+  let calls = 0;
+  const service = createUrlService({ model, generateCode: () => ++calls === 1 ? 9376 : 2 ** 47 });
+  expect((await service.create('https://example.com/new')).short_url).toBe(2 ** 47);
+  expect(calls).toBe(2);
+  expect((await service.getUrl(9376)).original_url).toBe('https://example.com/existing');
+});
+it('handles simultaneous identical creates with one persisted record and one code', async () => {
+  const service = createUrlService({ model });
+  const results = await Promise.all(Array.from({ length: 32 }, () => service.create('https://example.com/concurrent')));
+  expect(new Set(results.map(record => record.short_url)).size).toBe(1);
+  expect(await model.countDocuments()).toBe(1);
+});
+it('handles simultaneous distinct creates without code reuse', async () => {
+  const service = createUrlService({ model });
+  const results = await Promise.all(Array.from({ length: 32 }, (_, i) => service.create(`https://example.com/distinct/${i}`)));
+  expect(new Set(results.map(record => record.short_url)).size).toBe(32);
+  expect(await model.countDocuments()).toBe(32);
+});
+it('enforces both real uniqueness constraints', async () => {
+  await model.create({ original_url: 'https://example.com', short_url: 10 });
+  await expect(model.create({ original_url: 'https://example.com/other', short_url: 10 })).rejects.toMatchObject({ code: 11000 });
+  await expect(model.create({ original_url: 'https://example.com', short_url: 11 })).rejects.toMatchObject({ code: 11000 });
+  await expect(requireUrlIndexes(model.collection)).resolves.toBeUndefined();
+});
+it('paginates stable projected records through the real router and indexed _id query', async () => {
+  await model.create(Array.from({ length: 5 }, (_, i) => ({ original_url: `https://example.com/page/${i}`, short_url: i })));
+  const app = appFor({ urlService: createUrlService({ model }) });
+  const first = await request(app).get('/api/url?limit=2').set('Authorization', authorization);
+  const second = await request(app).get(`/api/url?limit=2&after=${first.body.pagination.next}`).set('Authorization', authorization);
+  const third = await request(app).get(`/api/url?limit=2&after=${second.body.pagination.next}`).set('Authorization', authorization);
+  expect([...first.body.data, ...second.body.data, ...third.body.data].map(item => item.short_url)).toEqual([0, 1, 2, 3, 4]);
+  expect(third.body.pagination.next).toBeNull();
+  expect(first.body.data[0]).not.toHaveProperty('__v');
+  const plan = await model.find({ _id: { $gt: new mongoose.Types.ObjectId(first.body.pagination.next) } }).sort({ _id: 1 }).limit(2).explain('executionStats');
+  expect(plan.executionStats.totalDocsExamined).toBeLessThanOrEqual(2);
+});
+it('returns real database not-found as 404 and an unavailable connection as 503', async () => {
+  const app = appFor({ urlService: createUrlService({ model }) });
+  expect((await request(app).get('/api/url/123')).status).toBe(404);
+  const unavailable = mongoose.createConnection();
+  const offline = unavailable.model('OfflineURL', UrlModel.schema.clone());
+  try {
+    const app = appFor({ urlService: createUrlService({ model: offline }) });
+    expect((await request(app).get('/api/url/123')).status).toBe(503);
+  } finally { await unavailable.close(); }
+});
+it('reproduces the legacy unconstrained check-then-insert race and preflights it read-only', async () => {
+  const collection = connection.db.collection('legacy_race');
+  await collection.deleteMany({});
+  const original_url = 'https://example.com/782';
+  // Synchronize the old check-then-insert pattern before any writes occur.
+  const misses = await Promise.all(Array.from({ length: 16 }, () => collection.findOne({ short_url: hashCode(original_url) })));
+  expect(misses.every(item => item === null)).toBe(true);
+  await Promise.all(misses.map(() => collection.insertOne({ original_url, short_url: hashCode(original_url), creation_date: new Date() })));
+  expect(await collection.countDocuments()).toBe(16);
+  await collection.insertOne({ original_url: 'file:///tmp', short_url: 'invalid', creation_date: 'invalid' });
+  const before = await collection.countDocuments();
+  expect(await preflight(collection)).toEqual({ records: 17, invalidRecords: 1, duplicateCodeGroups: 1, duplicateOriginalGroups: 1, requiredIndexesPresent: false });
+  expect(await collection.countDocuments()).toBe(before);
+  await expect(requireUrlIndexes(collection)).rejects.toThrow('Required URL uniqueness');
+  expect(await preflight(model.collection)).toEqual({ records: 0, invalidRecords: 0, duplicateCodeGroups: 0, duplicateOriginalGroups: 0, requiredIndexesPresent: true });
+});
+
+it('boots the real database adapter against only the disposable database', async () => {
+  try {
+    await mongoDB.connect({ connectionUrl: mongo.uri, databaseName: 'khanos_architecture_test' });
+    expect(mongoDB.isReady()).toBe(true);
+  } finally { await mongoose.connection.close(); }
+});
+
+it('keeps exact global reuse even with a case-insensitive collection default', async () => {
+  const schema = UrlModel.schema.clone();
+  const caseModel = connection.model('CaseURL', schema, 'case_urls');
+  await caseModel.createCollection({ collation: { locale: 'en', strength: 2 } });
+  await caseModel.createIndexes();
+  const service = createUrlService({ model: caseModel });
+  const upper = await service.create('https://example.com/Case');
+  const lower = await service.create('https://example.com/case');
+  expect(upper.short_url).not.toBe(lower.short_url);
+  await expect(requireUrlIndexes(caseModel.collection)).resolves.toBeUndefined();
+  expect((await preflight(caseModel.collection)).duplicateOriginalGroups).toBe(0);
+});
+
+it('preflights a missing collection without creating it', async () => {
+  const empty = connection.db.collection('untouched_preflight');
+  expect(await preflight(empty)).toEqual({ records: 0, invalidRecords: 0, duplicateCodeGroups: 0,
+    duplicateOriginalGroups: 0, requiredIndexesPresent: false });
+  expect(await connection.db.listCollections({ name: 'untouched_preflight' }).toArray()).toHaveLength(0);
+});
+
+it('uses one URL application operation for authorized concurrent real-router creates', async () => {
+  const app = appFor({ urlService: createUrlService({ model }) });
+  const responses = await Promise.all(Array.from({ length: 16 }, () => request(app).post('/api/url/create')
+    .set('Authorization', authorization).send({ original_url: 'https://example.com/router-concurrent' })));
+  expect(responses.every(response => response.status === 200)).toBe(true);
+  expect(new Set(responses.map(response => response.body.short_url)).size).toBe(1);
+  expect(await model.countDocuments()).toBe(1);
+});
+it('refuses to listen with a real database whose required indexes are absent', async () => {
+  const factory = jest.fn();
+  await expect(start({ config: { ...config, test: false, connectionUrl: mongo.uri,
+    databaseName: 'khanos_missing_index_test' }, serverFactory: factory, log: () => {} })).rejects.toThrow();
+  expect(factory).not.toHaveBeenCalled();
+  expect(mongoose.connection.readyState).toBe(0);
+  expect(connection.readyState).toBe(1); // Disconnect only the application's owned connection.
+});

@@ -1,88 +1,12 @@
-import dotenv from 'dotenv';
-import path from 'path';
-import express, { static as expressStatic, json as jsonParser, urlencoded as urlencodedParser } from 'express';
-import session from 'express-session';
-import compression from 'compression';
-import helmet from 'helmet';
-import cors from 'cors';
-import rateLimit from 'express-rate-limit';
-import mongoDB from './db.js';
-import routesIndex from './api/routes/index.js';
-import MainController from './api/controllers/MainController.js';
-import errorHandler from './api/middlewares/errorHandler.js';
+import { loadConfig } from './config.js';
+import { start } from './lifecycle.js';
+import { createLogger } from './logger.js';
 
-dotenv.config();
-
-const port = process.env.TEST === 'true' ? 0 : process.env.PORT || 3000;
-const host = process.env.HOST || 'localhost';
-const app = express();
-
-// Connect to MongoDB
-if (process.env.TEST !== 'true') mongoDB.connect();
-
-// Middlewares
-app.use(expressStatic(path.join('public'))); // Serve static files
-app.use(jsonParser()); // Parse JSON bodies
-app.use(urlencodedParser({ extended: true })); // Parse URL-encoded bodies
-app.use(compression()); // compress the HTTP response sent back to a client.
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'"],
-    },
-  },
-})); //Protect the app from well-known web vulnerabilities.
-app.use(cors()); // Enable CORS
-// Rate limiting (disabled in test mode)
-if (process.env.TEST !== 'true') {
-  const limiter = rateLimit({
-    windowMs: process.env.RATE_LIMIT_WINDOW_MS || 5 * 60 * 1000, // 15 minutes (900000 ms)
-    max: process.env.RATE_LIMIT_MAX || 50, // limit each IP to 100 requests per windowMs
-    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-    message: { error: 'Too many requests, please try again later.' }
-  });
-  app.use(limiter);
+// Explicit production entry point. Import app.js for tests; server.js boots the process.
+const log = createLogger();
+try {
+  await start({ config: loadConfig(), log });
+} catch {
+  log({ event: 'bootstrap', outcome: 'failed' });
+  process.exit(1); // A failed bounded cleanup must not leave a half-started process alive.
 }
-app.use(session({
-  secret: 'mykittycat',  // a secret string used to sign the session ID cookie
-  resave: false,  // don't save session if unmodified
-  saveUninitialized: false  // don't create session until something stored
-}))
-
-// Routes
-app.use('/api/', routesIndex);
-app.set('views', path.join('views'));
-app.set('view engine', 'ejs');
-
-// Main routes
-app.get('/', MainController.render);
-app.get('*wildcard', (req, res) => {
-  let response = {
-    status: 404,
-    message: `It seems that you are lost in the woods 🌲🌲🌲`,
-    error: null,
-  };
-  if (process.env.ENV !== 'development') {
-    response.status = '500';
-    response.message = `🤦‍♂️, something bad happened`
-  }
-  res.render('error.ejs', response);
-});
-
-// Error handler middleware (must be last)
-app.use(errorHandler);
-
-// Start the server
-const server = app.listen(port, () => {
-  if ( process.env.TEST === 'true' ) return; // Don't show the message when testing
-  console.log('The app is running...');
-  console.log(`http://${host}:${port}`);
-});
-// Disconnect from the database when the server is closed
-server.on('close', () => {
-  mongoDB.disconnect();
-});
-
-export default server;

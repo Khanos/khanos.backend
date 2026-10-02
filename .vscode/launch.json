@@ -1,32 +1,16 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "type": "node",
-            "request": "launch",
-            "name": "Test current file",
-            "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
-            "args": [
-                "--timeout",
-                "999999",
-                "--colors",
-                "${file}"
-            ],
-            "console": "internalConsole",
-            "internalConsoleOptions": "neverOpen"
-        },
-        {
-            "type": "node",
-            "request": "launch",
-            "name": "nodemon",
-            "runtimeExecutable": "nodemon",
-            "program": "${workspaceFolder}/app.js",
-            "restart": true,
-            "console": "internalConsole",
-            "internalConsoleOptions": "neverOpen"
-        }
-    ]
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node", "request": "launch", "name": "Server",
+      "program": "${workspaceFolder}/server.js", "cwd": "${workspaceFolder}",
+      "envFile": "${workspaceFolder}/.env", "console": "integratedTerminal"
+    },
+    {
+      "type": "node", "request": "launch", "name": "Jest current file",
+      "program": "${workspaceFolder}/node_modules/jest/bin/jest.js",
+      "args": ["--runInBand", "--coverage=false", "--runTestsByPath", "${file}"],
+      "cwd": "${workspaceFolder}", "env": { "TEST": "true" }, "console": "integratedTerminal"
+    }
+  ]
 }
