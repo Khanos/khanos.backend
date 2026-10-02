@@ -114,3 +114,53 @@ traffic/freshness/alerting needs; comprehensive dependency/vendored-browser revi
 product decisions above were answered. A specific conflict/alias decision is required only if
 preflight finds duplicates; it is not asserted that production contains them. The assessment
 is not declared entirely resolved or production-ready by local tests.
+
+## Subsequent frontend compatibility verification
+
+After PR #25 merged, verification against the current `khanos.frontend` found incompatible
+URL administration, short-link formats and list pagination. Normal GitHub search is
+compatible, with pre-existing client error/encoding weaknesses. See
+`.ai/frontend-compatibility-verification.md` for reproduced failures, source references,
+passing frontend checks and the separate live availability gap. Frontend compatibility
+is an outstanding rollout requirement; no application fixes or deployment were performed
+during that verification.
+
+## Frontend compatibility implementation — 2026-10-02
+
+The follow-up now fixes the reproduced client regressions in both repositories, while
+preserving the owner-only policy, global exact reuse and Gemini retirement. The historical
+assessment and failed verification above remain evidence of the pre-fix state.
+
+- Backend: accept the original four-digit zero-padded representation alongside canonical
+  safe numeric codes. URL responses (including denied owner access) are explicitly private,
+  non-cacheable responses. No record, issued code, schema or index is changed.
+- Frontend: protect `/url` and its same-origin administration routes with a separate
+  single-owner Basic credential. Forward the backend bearer credential only from server
+  secrets; reject cross-origin mutations. No accounts, cookies or sessions are introduced.
+  Support cursor pagination, create/copy/delete, padded and large public links, truthful
+  dependency failures, encoded public GitHub searches and safe literal text highlighting.
+  Both languages have usable loading/error/empty states; owner pages omit tracking.
+- Final checks on Node **24.19.0**: backend **12 suites / 184 tests**, **100% API coverage**
+  with the unchanged 99% gate, `npm run lint`; frontend **31 unit tests**, **29 browser tests**
+  (the existing 19 homepage checks plus 10 compatibility cases), and production build.
+  Astro check has zero errors/warnings and the existing 12 hints; the bundle-size warning
+  remains. `git diff --check` passed in both repositories. No lockfile/dependency changes.
+- A final direct integration check ran the actual Astro server, backend router/services,
+  disposable MongoDB **8.0.16** with real unique indexes and a native local GitHub fixture:
+  **8 groups passed**, including 8 concurrent bridge creates producing one record, public
+  redirects, indexed pagination, owner/CSRF denial, deletion, GitHub encoding/non-2xx/native
+  timeout, real database disconnect returning 503 and Gemini 410 before malformed JSON.
+  Owned servers/database were stopped and temporary database data removed.
+- Checked **22 built browser JavaScript files**: no synthetic build secrets or server-only
+  credential variable names. This is a targeted bundle check, not a general security audit.
+
+Deployment remains unverified and separately authorized. Privately provision frontend
+`URL_ADMIN_USERNAME`, a distinct random `URL_ADMIN_PASSWORD`, and `OWNER_API_TOKEN` matching
+the backend; supply the public backend base in build/runtime configuration. Complete the
+existing authorized preflight/index/startup-readiness procedure before deployment. The
+earlier live Heroku 503 probes do not establish a cause or deployed revision. This follow-up
+adds no database migration. Frontend normalization also works with PR #25's canonical-only
+backend, allowing an overlapping rollout; the backend expansion supports older clients.
+Rollback must keep owner enforcement and existing indexes/codes. Rolling back the frontend
+alone restores the incompatible administration UI; prefer temporarily disabling that tool
+instead of restoring anonymous access. No deployment or production-data operation occurred.

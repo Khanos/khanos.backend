@@ -26,6 +26,18 @@ afterAll(async () => {
 });
 beforeEach(async () => { await model.deleteMany({}); });
 
+it('resolves legacy padded and new codes through the public router without changing stored mappings', async () => {
+  await model.create([{ original_url: 'https://example.com/legacy', short_url: 42 },
+    { original_url: 'https://example.com/new', short_url: 200000000000001 }]);
+  const app = appFor({ urlService: createUrlService({ model }) });
+  expect((await request(app).get('/api/url/0042')).body.original_url).toBe('https://example.com/legacy');
+  expect((await request(app).get('/api/url/200000000000001')).body.original_url).toBe('https://example.com/new');
+  expect((await request(app).get('/api/url')).status).toBe(401);
+  expect((await request(app).delete('/api/url/delete/0042')).status).toBe(401);
+  expect(await model.countDocuments()).toBe(2);
+  expect((await model.findOne({ short_url: 42 })).short_url).toBe(42);
+});
+
 it('preserves numeric legacy lookup and separates the documented colliding URLs', async () => {
   const first = 'https://example.com/782'; const second = 'https://example.com/1000';
   expect(hashCode(first)).toBe(hashCode(second));
