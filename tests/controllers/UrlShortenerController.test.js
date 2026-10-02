@@ -57,9 +57,28 @@ describe('actual URL router and owner policy', () => {
     expect(response.status).toBe(400);
     expect(response.body.code).toBe('INVALID_URL');
   });
-  it.each(['-1', '0123', '1e3', '1.5', '9007199254740992', 'abc'])('rejects malformed code %s', async (code) => {
+  it.each(['-1', '00', '00042', '1e3', '1.5', '9007199254740992', 'abc'])('rejects malformed code %s', async (code) => {
     expect((await request(app).get(`/api/url/${code}`)).status).toBe(400);
     expect(service.getUrl).not.toHaveBeenCalled();
+  });
+  it.each([['0042', 42], ['0000', 0], ['0123', 123], ['200000000000001', 200000000000001]])('supports issued link representation %s', async (code, numeric) => {
+    const response = await request(app).get(`/api/url/${code}`);
+    expect(response.status).toBe(200);
+    expect(service.getUrl).toHaveBeenCalledWith(numeric);
+    expect(response.headers['cache-control']).toBe('no-store');
+    expect(response.headers.vary).toContain('Authorization');
+    expect((await request(app).delete(`/api/url/delete/${code}`)).status).toBe(401);
+    expect((await request(app).delete(`/api/url/delete/${code}`).set('Authorization', authorization)).status).toBe(200);
+    expect(service.deleteShortUrl).toHaveBeenCalledWith(numeric);
+  });
+  it('prevents caching owner listing and authorization failures', async () => {
+    for (const header of [undefined, authorization]) {
+      const call = request(app).get('/api/url');
+      if (header) call.set('Authorization', header);
+      const response = await call;
+      expect(response.headers['cache-control']).toBe('no-store');
+      expect(response.headers.vary).toContain('Authorization');
+    }
   });
   it('separates missing records from database failures', async () => {
     service.getUrl.mockRejectedValueOnce(new ApiError(404, 'URL_NOT_FOUND', 'URL not found'))

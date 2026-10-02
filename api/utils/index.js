@@ -19,7 +19,9 @@ export const validateUrl = (value) => {
 };
 export function shortCode(value) {
   // All nonnegative, safe integer legacy codes remain addressable, including 0.
-  if (typeof value !== 'string' || !/^(0|[1-9]\d{0,15})$/.test(value) || !Number.isSafeInteger(Number(value))) {
+  // The original frontend issued four-character zero-padded links. Accept that
+  // bounded legacy representation as well as canonical codes; never rewrite data.
+  if (typeof value !== 'string' || !/^(0|[1-9]\d{0,15}|0\d{3})$/.test(value) || !Number.isSafeInteger(Number(value))) {
     throw new ApiError(400, 'INVALID_CODE', 'Invalid short code');
   }
   return Number(value);

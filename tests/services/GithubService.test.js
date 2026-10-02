@@ -109,15 +109,21 @@ it('uses the native fetch transport and real router against an isolated HTTP ups
   });
   await new Promise(resolve => upstream.listen(0, '127.0.0.1', resolve));
   try {
-    const service = createGithubService({ baseUrl: `http://127.0.0.1:${upstream.address().port}/`, timeoutMs: 100 });
+    const baseUrl = `http://127.0.0.1:${upstream.address().port}/`;
+    // Successful cold native fetches use the production default deadline, not a
+    // scheduler-speed assertion. Deliberately stalled responses test a separate bound.
+    const service = createGithubService({ baseUrl, timeoutMs: 5000 });
     const app = appFor({ githubService: service });
     expect((await request(app).get('/api/github/getCommits/fix%20%26%20tidy')).body).toEqual(search);
     expect(new URL(paths[0], 'http://localhost').searchParams.get('q')).toBe('"fix & tidy"');
     const failure = await request(app).get('/api/github/getCommits/missing');
     expect(failure.status).toBe(404);
     expect(failure.text).not.toContain('synthetic-private-body');
-    expect((await request(app).get('/api/github/getCommits/slow')).status).toBe(504);
-    expect((await request(app).get('/api/github/getCommits/body-delay')).status).toBe(504);
+    const boundedApp = appFor({ githubService: createGithubService({ baseUrl, timeoutMs: 500 }) });
+    expect((await request(boundedApp).get('/api/github/getCommits/slow')).status).toBe(504);
+    expect(paths.at(-1)).toContain('slow');
+    expect((await request(boundedApp).get('/api/github/getCommits/body-delay')).status).toBe(504);
+    expect(paths.at(-1)).toContain('body-delay');
   } finally {
     upstream.closeAllConnections();
     await new Promise(resolve => upstream.close(resolve));

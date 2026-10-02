@@ -13,6 +13,11 @@ export default function createRouter({ githubService, urlService, ownerToken }) 
   router.get('/', MainController.index);
   router.get('/github/getCommits/:word', github.getCommits);
   router.get('/github/getCommitsByRepoAndOwner/:owner/:repo', github.getCommitsByRepoAndOwner);
+  router.use('/url', (req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store');
+    res.vary('Authorization');
+    next();
+  });
   router.get('/url', authorize, urls.index);
   router.post('/url/create', authorize, urls.create);
   router.delete('/url/delete/:short_url', authorize, urls.delete);

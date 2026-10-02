@@ -15,7 +15,7 @@ const githubErrors = [
   { status: 503, description: 'GitHub denied access or rate limited the request.' },
   { status: 504, description: 'GitHub deadline exceeded or request cancelled.' },
 ];
-const codeParam = { name: 'short_url', type: 'number', required: true, description: 'Canonical nonnegative safe integer. Existing issued numeric codes remain supported.' };
+const codeParam = { name: 'short_url', type: 'number', required: true, description: 'Nonnegative safe integer: canonical digits or legacy four-digit zero padding. Existing issued codes remain supported.' };
 const githubPagination = [
   { name: 'page (query)', type: 'number', required: false, description: 'Page 1-1000; default 1. Search is also subject to GitHub result limits.' },
   { name: 'per_page (query)', type: 'number', required: false, description: 'Page size 1-100; default 30.' },

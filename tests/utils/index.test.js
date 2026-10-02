@@ -12,9 +12,11 @@ it.each([undefined, null, {}, [], 123, '', 'invalid', 'javascript:alert(1)', 'fi
   'ftp://example.com', 'https://user:password@example.com', 'https://user@example.com', 'https://example.com/a b', 'https://example.com/\n', `https://example.com/${'a'.repeat(2048)}`])('rejects unsafe or ill-typed input %#', value => {
   expect(validateUrl(value)).toBeNull();
 });
-it('parses only safe canonical numeric codes', () => {
+it('parses safe canonical codes and the issued four-digit legacy format', () => {
   expect(shortCode('9007199254740991')).toBe(Number.MAX_SAFE_INTEGER);
   expect(shortCode('0')).toBe(0);
+  expect(shortCode('0042')).toBe(42);
+  expect(shortCode('0000')).toBe(0);
   expect(() => shortCode(123)).toThrow('Invalid short code');
   expect(positiveInteger(undefined, 30, 100)).toBe(30);
   expect(positiveInteger('100', 30, 100)).toBe(100);

@@ -73,7 +73,10 @@ logs a safe outcome and exits nonzero. HTTP headers/requests also have bounded t
   `__v` is omitted. Existing numeric codes stay valid; new codes have a random 47-bit space.
   Original URL reuse is global and exact, with no case/path/query normalization.
 - URL input must be a string of at most 2048 characters: absolute HTTP(S), no embedded userinfo,
-  whitespace or control characters. Codes must be canonical nonnegative safe integer strings.
+  whitespace or control characters. Codes accept canonical nonnegative safe integer strings
+  and the original frontend's four-digit zero padding (for example, `0042` resolves code 42).
+  Other noncanonical formats remain invalid. URL responses, including authorization failures,
+  use `Cache-Control: no-store` and vary on `Authorization`.
 - Listing retains `{ error: false, message: "URLs found", data: [...] }` and adds
   `pagination: { limit, next }`. Default `limit=25`, maximum 100; send `after=<next>` to continue.
   Ordering uses immutable `_id`. This is live cursor pagination, not a frozen snapshot.
@@ -98,6 +101,13 @@ Neither exposes configuration; neither includes optional GitHub availability. He
 from the global IP limiter (default 50 requests per 5 minutes). No metrics endpoint is exposed;
 status/duration/dependency logs provide the initial operational evidence. Deployment alerting,
 trusted proxy hops, TLS termination and restrictive CORS require actual ingress requirements.
+
+`khanos.frontend` is the application consumer. Its public browser reads omit credentials;
+its same-origin administration API authenticates the owner separately and forwards this
+backend's bearer token from server secrets only. The backend continues to enforce its own
+owner boundary, regardless of frontend login or CORS. Deploy both compatibility changes
+after provisioning frontend secrets and completing the existing database/index readiness
+procedure. No index, data or issued-code migration is added by the padding compatibility fix.
 
 ## Testing
 
