@@ -171,3 +171,41 @@ on the hosted runner. The integration test now gives success/non-2xx checks the 
 5-second budget and tests stalled headers/body responses with a separate bounded deadline,
 asserting that each stall actually reached the local fixture. Production deadlines and
 coverage thresholds are unchanged. The full local suite and lint passed after this fix.
+
+## Production startup diagnosis and direct-main changes — 2026-10-02
+
+After the owner token was provisioned in Heroku, a private equality/format check passed,
+but the web process remained crashed. Public GitHub and health requests returned 503 HTML
+without CORS headers; the backend's ordinary Express CORS middleware was never serving
+those responses. Allowlisted startup diagnostics identified database startup failure.
+
+The subsequent request to make the necessary changes directly on `main` authorized the
+bounded read-only database investigation. Production preflight succeeded: **2 records,
+0 invalid records, 0 duplicate-code groups, 0 duplicate-original groups**. Only the `_id`
+index exists; both required URL unique indexes are absent. Output contained only aggregate
+counts and index metadata. No original URL, issued code, record ID, URI or credential was
+reported. No production records or indexes were modified by this investigation.
+
+Direct-main source changes:
+
+- `scripts/url-index-migration.js` defaults to a read-only plan, requires an explicit target,
+  repeats data/index checks before `--apply`, creates only the two approved missing indexes,
+  preserves records and existing indexes, blocks conflicts, and reports partial builds
+  safely. Retrying a clean completed/partial operation is idempotent. It never runs at startup.
+- Missing URL constraints, including an absent collection, now use the safe startup code
+  `URL_INDEXES_MISSING`, distinguishing index readiness from other database failures.
+- README and migration instructions describe planning, explicit apply, backup/quiescence,
+  conflict handling, bounded builds and rollback. The operator must still authorize actual
+  index installation separately; code changes do not remove the readiness requirement.
+
+Node **24.19.0** validation: **13 suites / 195 tests passed**, including the actual migration
+CLI and real MongoDB **8.0.16** index installation, unchanged records, conflicts, partial
+failure/retry and absent-collection dry runs. API coverage remains **100%** with the original
+99% gate. `npm run lint` and `git diff --check` passed. Tests use only disposable databases.
+The new operator command's production **dry-run** also passed and reported exactly
+`unique_short_code` and `unique_original_url` pending, with no conflicts or created indexes.
+
+The live service remains unavailable until the separately authorized migration is applied
+after backup and writer quiescence, then the crashed backend is restarted and health/CORS
+are checked again. No frontend CORS workaround or loss of URL integrity was introduced.
+No source deployment, production database write or process restart occurred in this work.

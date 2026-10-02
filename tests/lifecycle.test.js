@@ -53,6 +53,15 @@ it('cleans up after a real listener bind failure', async () => {
     expect(log).toHaveBeenCalledWith({ event: 'startup', outcome: 'failed', code: 'LISTENER_STARTUP_FAILED' });
   } finally { await new Promise(resolve => occupied.close(resolve)); }
 });
+it('identifies missing URL indexes without exposing the database exception', async () => {
+  database.connect.mockRejectedValue(Object.assign(new Error('synthetic-private-database-detail'), { code: 'URL_INDEXES_MISSING' }));
+  const factory = jest.fn();
+  await expect(start({ config: runtime, database, signals, log, serverFactory: factory })).rejects.toThrow();
+  expect(factory).not.toHaveBeenCalled();
+  expect(database.disconnect).toHaveBeenCalledTimes(1);
+  expect(log).toHaveBeenCalledWith({ event: 'startup', outcome: 'failed', code: 'URL_INDEXES_MISSING' });
+  expect(JSON.stringify(log.mock.calls)).not.toContain('synthetic-private-database-detail');
+});
 it('awaits disconnect and makes repeated shutdown idempotent', async () => {
   const disconnected = deferred();
   database.disconnect.mockReturnValue(disconnected.promise);

@@ -1,4 +1,6 @@
 import { jest } from '@jest/globals';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { start } from '../../lifecycle.js';
 import mongoose from 'mongoose';
 import request from 'supertest';
@@ -7,6 +9,7 @@ import { createUrlService } from '../../api/services/UrlShortenerService.js';
 import { hashCode } from '../../api/utils/index.js';
 import mongoDB, { requireUrlIndexes } from '../../db.js';
 import { preflight } from '../../scripts/url-preflight.js';
+import { migrateUrlIndexes } from '../../scripts/url-index-migration.js';
 import { startMongo } from '../helpers/mongo.js';
 import { appFor, authorization, config } from '../helpers/app.js';
 
@@ -158,3 +161,91 @@ it('refuses to listen with a real database whose required indexes are absent', a
   expect(mongoose.connection.readyState).toBe(0);
   expect(connection.readyState).toBe(1); // Disconnect only the application's owned connection.
 });
+
+it('explicitly migrates clean legacy records, preserves mappings and retries idempotently', async () => {
+  const collection = connection.db.collection('index_migration');
+  await collection.insertMany([{ original_url: 'https://example.com/migration/legacy', short_url: 42, creation_date: new Date() },
+    { original_url: 'https://example.com/migration/new', short_url: 200000000000001, creation_date: new Date() }]);
+  const before = await collection.find().sort({ _id: 1 }).toArray();
+  const planned = await migrateUrlIndexes(collection);
+  expect(planned).toMatchObject({ records: 2, mode: 'dry-run', requiredIndexesPresent: false, blockedBy: null,
+    pendingIndexes: ['unique_short_code', 'unique_original_url'], createdIndexes: [] });
+  expect(await collection.indexes()).toHaveLength(1);
+  await expect(requireUrlIndexes(collection)).rejects.toMatchObject({ code: 'URL_INDEXES_MISSING' });
+  expect(await migrateUrlIndexes(collection, { apply: true })).toMatchObject({ requiredIndexesPresent: true,
+    createdIndexes: ['unique_short_code', 'unique_original_url'] });
+  expect(await collection.find().sort({ _id: 1 }).toArray()).toEqual(before);
+  expect((await migrateUrlIndexes(collection, { apply: true })).createdIndexes).toEqual([]);
+  await expect(collection.insertOne({ ...before[0], _id: new mongoose.Types.ObjectId() })).rejects.toMatchObject({ code: 11000 });
+  await expect(requireUrlIndexes(collection)).resolves.toBeUndefined();
+});
+
+it('blocks migration on duplicate or invalid data without creating indexes or changing records', async () => {
+  const collection = connection.db.collection('blocked_migration');
+  await collection.insertMany([{ original_url: 'https://example.com/duplicate', short_url: 42, creation_date: new Date() },
+    { original_url: 'https://example.com/duplicate', short_url: 42, creation_date: new Date() },
+    { original_url: 'file:///invalid', short_url: 43, creation_date: new Date() }]);
+  const before = await collection.find().toArray();
+  expect(await migrateUrlIndexes(collection)).toMatchObject({ blockedBy: 'URL_MIGRATION_DATA_CONFLICT' });
+  await expect(migrateUrlIndexes(collection, { apply: true })).rejects.toMatchObject({ code: 'URL_MIGRATION_DATA_CONFLICT' });
+  expect(await collection.find().toArray()).toEqual(before);
+  expect(await collection.indexes()).toHaveLength(1);
+});
+
+it('blocks existing index conflicts and leaves existing indexes intact', async () => {
+  const collection = connection.db.collection('conflicting_migration');
+  await collection.createIndex({ short_url: 1 }, { name: 'legacy_code_index' });
+  const before = await collection.indexes();
+  expect(await migrateUrlIndexes(collection)).toMatchObject({ blockedBy: 'URL_MIGRATION_INDEX_CONFLICT' });
+  await expect(migrateUrlIndexes(collection, { apply: true })).rejects.toMatchObject({ code: 'URL_MIGRATION_INDEX_CONFLICT' });
+  expect(await collection.indexes()).toEqual(before);
+});
+
+it('plans a missing collection read-only and requires explicit apply to create its indexes', async () => {
+  const collection = connection.db.collection('missing_migration');
+  expect(await migrateUrlIndexes(collection)).toMatchObject({ records: 0, requiredIndexesPresent: false, mode: 'dry-run' });
+  expect(await connection.db.listCollections({ name: 'missing_migration' }).toArray()).toHaveLength(0);
+  expect(await migrateUrlIndexes(collection, { apply: true })).toMatchObject({ requiredIndexesPresent: true });
+});
+
+it('reports partial index builds safely and completes them on an explicit retry', async () => {
+  const collection = connection.db.collection('partial_migration');
+  await collection.insertOne({ original_url: 'https://example.com/partial', short_url: 42, creation_date: new Date() });
+  const createIndex = collection.createIndex.bind(collection);
+  const spy = jest.spyOn(collection, 'createIndex').mockImplementationOnce(createIndex)
+    .mockRejectedValueOnce(new Error('synthetic-private-index-error'));
+  try {
+    await expect(migrateUrlIndexes(collection, { apply: true })).rejects.toMatchObject({ code: 'URL_INDEX_BUILD_FAILED',
+      message: 'URL index migration could not be completed', createdIndexes: ['unique_short_code'] });
+    expect((await collection.indexes()).filter(index => index.unique).map(index => index.name)).toEqual(['unique_short_code']);
+  } finally { spy.mockRestore(); }
+  expect((await migrateUrlIndexes(collection, { apply: true })).createdIndexes).toEqual(['unique_original_url']);
+  expect(await collection.countDocuments()).toBe(1);
+});
+
+it('rejects a reserved index name on a different field before building any index', async () => {
+  const collection = connection.db.collection('named_index_conflict');
+  await collection.createIndex({ unrelated: 1 }, { name: 'unique_original_url' });
+  const before = await collection.indexes();
+  await expect(migrateUrlIndexes(collection, { apply: true })).rejects.toMatchObject({ code: 'URL_MIGRATION_INDEX_CONFLICT' });
+  expect(await collection.indexes()).toEqual(before);
+  await expect(migrateUrlIndexes(collection, { apply: 'true' })).rejects.toMatchObject({ code: 'INVALID_MIGRATION_ARGUMENTS' });
+});
+
+it('runs the actual migration CLI only against the explicitly selected disposable database', async () => {
+  const databaseName = 'khanos_index_cli_test';
+  const collection = connection.getClient().db(databaseName).collection('urlmodels');
+  await collection.insertOne({ original_url: 'https://example.com/cli', short_url: 42, creation_date: new Date() });
+  const script = fileURLToPath(new URL('../../scripts/url-index-migration.js', import.meta.url));
+  const env = { PATH: process.env.PATH, MIGRATION_MONGODB_URI: mongo.uri, MIGRATION_DB_NAME: databaseName };
+  const planned = spawnSync(process.execPath, [script], { env, encoding: 'utf8', timeout: 10000 });
+  expect(planned.status).toBe(0);
+  expect(planned.stderr).toBe('');
+  expect(JSON.parse(planned.stdout)).toMatchObject({ mode: 'dry-run', records: 1, requiredIndexesPresent: false });
+  expect(await collection.indexes()).toHaveLength(1);
+  const applied = spawnSync(process.execPath, [script, '--apply'], { env, encoding: 'utf8', timeout: 10000 });
+  expect(applied.status).toBe(0);
+  expect(applied.stderr).toBe('');
+  expect(JSON.parse(applied.stdout)).toMatchObject({ mode: 'apply', records: 1, requiredIndexesPresent: true });
+  await expect(requireUrlIndexes(collection)).resolves.toBeUndefined();
+}, 20000);

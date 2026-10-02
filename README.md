@@ -52,6 +52,11 @@ HTTP failures, bad JSON or cancellation. No GitHub credentials or cache are conf
 Before running against existing data, follow the separately authorized
 [read-only preflight and index migration](docs/url-integrity-migration.md). Startup awaits
 MongoDB and verifies uniqueness indexes before accepting traffic; it never creates them.
+Missing required indexes are reported as the safe startup code `URL_INDEXES_MISSING`.
+The explicit operator command `node scripts/url-index-migration.js` is read-only by
+default; `--apply` creates only missing approved indexes after another preflight.
+It requires a separately authorized target, backup and quiesced writers as documented
+in the migration procedure; startup never runs the command.
 
 ```sh
 npm start

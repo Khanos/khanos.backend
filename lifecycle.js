@@ -68,7 +68,7 @@ export async function start({ config, database = mongoDB, log = createLogger(),
     return { app, server, shutdown };
   } catch (error) {
     log({ event: 'startup', outcome: 'failed',
-      code: startupPhase === 'database' ? 'DATABASE_STARTUP_FAILED' : 'LISTENER_STARTUP_FAILED' });
+      code: startupPhase === 'database' ? (error?.code === 'URL_INDEXES_MISSING' ? 'URL_INDEXES_MISSING' : 'DATABASE_STARTUP_FAILED') : 'LISTENER_STARTUP_FAILED' });
     await shutdown();
     throw error;
   }

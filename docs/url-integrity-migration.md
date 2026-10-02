@@ -1,7 +1,8 @@
 # URL integrity rollout and rollback
 
 This procedure is **not executed by startup**. It requires separate deployment/database
-authorization. No production database has been read or modified by the implementation.
+authorization. Tests use disposable databases; separately authorized production preflight
+findings are recorded in `.ai/backend-architecture-implementation.md`.
 The application never calls `syncIndexes`, builds indexes automatically, deletes duplicate
 records, or rewrites issued codes. Schema index declarations are used only by disposable tests
 and an operator-approved migration.
@@ -36,6 +37,37 @@ Repeated original URLs with multiple issued codes also need an explicit alias/re
 before a unique original index is possible. **Do not silently delete records or change codes
 to make an index build succeed.** Preserving such aliases would require a separately reviewed
 canonical reuse mapping; this implementation intentionally does not invent that migration.
+
+## Explicit operator command
+
+After separate migration authorization, a recoverable backup and quiescing every writer,
+the operator command can perform the narrowly scoped index installation below. It is
+read-only by default and requires explicit migration environment variables; it ignores
+`.env` and application DB settings. Enter the authorized URI privately, using a read-only
+identity for planning and an identity with index privileges only for the approved apply.
+
+```bash
+read -rsp 'Authorized MongoDB URI: ' MIGRATION_MONGODB_URI
+export MIGRATION_MONGODB_URI
+read -rp 'Authorized database name: ' MIGRATION_DB_NAME
+export MIGRATION_DB_NAME
+node scripts/url-index-migration.js          # Read-only plan and conflict counts
+node scripts/url-index-migration.js --apply  # Only after backup/writer checks and authorization
+unset MIGRATION_MONGODB_URI MIGRATION_DB_NAME
+```
+
+The JSON report contains counts, approved pending/created index names and a safe conflict
+code, never URLs, codes, record IDs or credentials. Invalid/duplicate records, incompatible
+single-field indexes or conflicting reserved names block every index write. The command
+never drops an index, modifies a record, repairs conflicts or changes an issued code.
+Already equivalent indexes are retained, making retries idempotent. Each index build has
+a 30-second server budget. A failed second build retains the first and reports its name;
+inspect state and rerun preflight before an authorized retry, rather than undoing it blindly.
+Dry-run exits 2 on conflicts and 0 on a clean plan, even when indexes still need creation.
+Connection/build/argument failures exit 1; successful apply requires index readiness.
+
+The application's `URL_INDEXES_MISSING` startup code distinguishes this rollout requirement
+from other database startup failures. No listener is opened until the constraints exist.
 
 ## Authorized migration
 
