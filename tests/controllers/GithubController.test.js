@@ -1,68 +1,33 @@
+import { jest } from '@jest/globals';
 import request from 'supertest';
-import express from 'express';
-import GithubController from '../../api/controllers/GithubController';
-import GithubService from '../../api/services/GithubService';
-const app = express();
+import { appFor } from '../helpers/app.js';
 
-app.get('/api/github/getCommits/:word', GithubController.getCommits);
-app.get('/api/github/getCommitsByRepoAndOwner/:owner/:repo', GithubController.getCommitsByRepoAndOwner);
-
-describe('GithubController', () => {  
-  describe('.getCommits', () => {
-    afterEach(() => {
-      jest.clearAllMocks();
-    });
-    
-    it('should return 500 if there is an internal server error', async () => {
-      jest.spyOn(GithubService, 'getCommitsByWord').mockImplementation(() => {
-        throw new Error('Internal server error');
-      });
-
-      const res = await request(app).get('/api/github/getCommits/test');
-      expect(res.statusCode).toEqual(500);
-      expect(res.body).toEqual({ error: 'Internal server error' });
-    });
-
-    it('should return commits by a given word', async () => {
-      const mockedResponse = {
-        total_count: 1,
-        incomplete_results: false,
-        items: [{data: 'test'}],
-      };
-      jest.spyOn(GithubService, 'getCommitsByWord').mockImplementation(() => mockedResponse);
-
-      const res = await request(app).get('/api/github/getCommits/test');
-      expect(res.statusCode).toEqual(200);
-      expect(res.body).toEqual(mockedResponse);
-    });
-  });
-
-  describe('.getCommitsByRepoAndOwner', () => {
-    afterEach(() => {
-      jest.clearAllMocks();
-    });
-    
-    it('should return 500 if there is an internal server error', async () => {
-      jest.spyOn(GithubService, 'getCommitsByRepoAndOwner').mockImplementation(() => {
-        throw new Error('Internal server error');
-      });
-
-      const res = await request(app).get('/api/github/getCommitsByRepoAndOwner/khanos/backend');
-      expect(res.statusCode).toEqual(500);
-      expect(res.body).toEqual({ error: 'Internal server error' });
-    });
-
-    it('should return commits by a given word', async () => {
-      const mockedResponse = {
-        total_count: 1,
-        incomplete_results: false,
-        items: [{data: 'test'}],
-      };
-      jest.spyOn(GithubService, 'getCommitsByRepoAndOwner').mockImplementation(() => mockedResponse);
-
-      const res = await request(app).get('/api/github/getCommitsByRepoAndOwner/test/test');
-      expect(res.statusCode).toEqual(200);
-      expect(res.body).toEqual(mockedResponse);
-    });
-  });
+let service;
+let app;
+beforeEach(() => {
+  service = { getCommitsByWord: jest.fn().mockResolvedValue({ items: [], total_count: 0, incomplete_results: false }),
+    getCommitsByRepoAndOwner: jest.fn().mockResolvedValue([]) };
+  app = appFor({ githubService: service });
+});
+it('uses the actual search route and preserves the search object', async () => {
+  const result = await request(app).get('/api/github/getCommits/hello%20world?page=2&per_page=10');
+  expect(result.status).toBe(200);
+  expect(result.body).toEqual({ items: [], total_count: 0, incomplete_results: false });
+  expect(service.getCommitsByWord).toHaveBeenCalledWith('hello world', { page: 2, perPage: 10 }, expect.any(AbortSignal));
+});
+it('uses the actual repository route with bounded defaults', async () => {
+  const result = await request(app).get('/api/github/getCommitsByRepoAndOwner/khanos/backend');
+  expect(result.body).toEqual([]);
+  expect(service.getCommitsByRepoAndOwner).toHaveBeenCalledWith('backend', 'khanos', { page: 1, perPage: 30 }, expect.any(AbortSignal));
+});
+it.each(['page=0', 'page=1001', 'per_page=101', 'per_page=1&per_page=2'])('rejects pagination %s', async query => {
+  expect((await request(app).get(`/api/github/getCommits/test?${query}`)).status).toBe(400);
+  expect(service.getCommitsByWord).not.toHaveBeenCalled();
+});
+it('masks unexpected provider exceptions', async () => {
+  service.getCommitsByWord.mockRejectedValue(new Error('synthetic-private-error'));
+  const response = await request(app).get('/api/github/getCommits/test');
+  expect(response.status).toBe(500);
+  expect(response.body.error).toBe('Internal server error');
+  expect(response.text).not.toContain('synthetic-private-error');
 });

@@ -1,209 +1,50 @@
-/**
- * API Routes Documentation
- * ------------------------------------------------------------------
- * Single source of truth for every endpoint exposed by this service.
- * The root page (views/index.ejs) and the JSON served at /api/ are both
- * rendered from this metadata, so any change here is reflected everywhere.
- *
- * Each entry describes one HTTP route: method, path, a short summary, a
- * longer description, path/query parameters, and the possible responses
- * (status code + human description + example payload).
- */
-
-/** @typedef {Object} ApiResponse - A single documented response variant */
-/** @typedef {{name:string,type:string,required:boolean,description:string}} ApiParam - One path parameter */
-
-/**
- * Documented response for an endpoint.
- * @property {number|string} status HTTP status code (or string alias).
- * @property {string} description Human-readable meaning of the response.
- * @property {Object|Array|null} example Representative JSON payload.
- */
-
-/**
- * A single documented endpoint.
- * @property {'GET'|'POST'|'PUT'|'DELETE'} method HTTP verb.
- * @property {string} path Route path, including `:param` placeholders.
- * @property {string} summary One-line description of what the route does.
- * @property {string} description Longer explanation, shown in the body.
- * @property {ApiParam[]} params Path parameters (query/body are inline).
- * @property {Array<Object>} responses Possible status codes and payloads.
- */
-
-/**
- * A group of endpoints sharing a service/feature area.
- * @property {string} label Group heading shown above its endpoints.
- * @property {Array<Object>} endpoints Documented routes in this group.
- */
-
+/** Passive endpoint catalog shared by GET /api/ and the HTML documentation. */
+const errors = [
+  { status: 400, description: 'Invalid input, code, path encoding or pagination.' },
+  { status: 413, description: 'Body exceeds 100 KiB or form has over 100 parameters.' },
+  { status: 415, description: 'Unsupported request encoding.' },
+  { status: 429, description: 'Rate limit exceeded.' },
+  { status: 500, description: 'Unexpected internal failure; details are masked.' },
+];
+const authorization = { status: 401, description: 'Owner bearer authorization required.' };
+const database = { status: 503, description: 'Database unavailable or bounded code allocation exhausted.' };
+const notFound = { status: 404, description: 'URL not found.' };
+const githubErrors = [
+  { status: 404, description: 'GitHub resource not found.' },
+  { status: 502, description: 'GitHub network, HTTP or response-contract failure.' },
+  { status: 503, description: 'GitHub denied access or rate limited the request.' },
+  { status: 504, description: 'GitHub deadline exceeded or request cancelled.' },
+];
+const codeParam = { name: 'short_url', type: 'number', required: true, description: 'Canonical nonnegative safe integer. Existing issued numeric codes remain supported.' };
+const githubPagination = [
+  { name: 'page (query)', type: 'number', required: false, description: 'Page 1-1000; default 1. Search is also subject to GitHub result limits.' },
+  { name: 'per_page (query)', type: 'number', required: false, description: 'Page size 1-100; default 30.' },
+];
 export const routes = [
-  {
-    label: 'Main',
-    endpoints: [
-      {
-        method: 'GET',
-        path: '/',
-        summary: 'API documentation page',
-        description:
-          'Renders the human-readable API documentation for this service, including endpoint groups, parameters and response examples.',
-        params: [],
-        responses: [
-          { status: 200, description: 'HTML documentation page' },
-        ],
-      },
-      {
-        method: 'GET',
-        path: '/api/',
-        summary: 'API documentation (JSON)',
-        description:
-          'Returns the same endpoint metadata as structured JSON. Useful for clients that want to fetch the docs programmatically.',
-        params: [],
-        responses: [
-          { status: 200, description: 'Array of documented routes' },
-        ],
-      },
-    ],
-  },
-  {
-    label: 'GitHub',
-    endpoints: [
-      {
-        method: 'GET',
-        path: '/api/github/getCommits/:word',
-        summary: 'Search commits by keyword',
-        description:
-          'Searches recent GitHub commits (main public repositories) that contain the given word.',
-        params: [
-          { name: 'word', type: 'string', required: true, description: 'Keyword to search for in commit messages.' },
-        ],
-        responses: [
-          { status: 200, description: 'Array of commit objects. On upstream failure the service swallows the error and returns a JSON body of `null` (still HTTP 200).' },
-        ],
-      },
-      {
-        method: 'GET',
-        path: '/api/github/getCommitsByRepoAndOwner/:owner/:repo',
-        summary: 'Search commits by owner and repo',
-        description:
-          'Searches recent GitHub commits for a specific repository, identified by its owner and name.',
-        params: [
-          { name: 'owner', type: 'string', required: true, description: 'GitHub account or organization that owns the repository.' },
-          { name: 'repo', type: 'string', required: true, description: 'Repository name (without the .git suffix).' },
-        ],
-        responses: [
-          { status: 200, description: 'Array of commit objects. On upstream failure the service swallows the error and returns a JSON body of `null` (still HTTP 200).' },
-        ],
-      },
-    ],
-  },
-  {
-    label: 'URL Shortener',
-    endpoints: [
-      {
-        method: 'GET',
-        path: '/api/url',
-        summary: 'List all stored URLs',
-        description: 'Fetches every URL currently stored in the database.',
-        params: [],
-        responses: [
-          { status: 200, description: 'Array of stored URL documents.' },
-          { status: 500, description: 'Internal server error while reading from the database.' },
-        ],
-      },
-      {
-        method: 'POST',
-        path: '/api/url/create',
-        summary: 'Create a short URL',
-        description:
-          'Creates a new short URL for the provided original URL. If an existing short URL is found, it is returned; otherwise a new one is created.',
-        params: [
-          { name: 'original_url', type: 'string', required: true, description: 'The full URL to shorten.' },
-        ],
-        responses: [
-          { status: 200, description: 'The shortened URL document `{ original_url, short_url, creation_date }` (created or reused).', example: { original_url: 'https://example.com/very-long-path', short_url: 12345, creation_date: '2026-01-01T00:00:00.000Z' } },
-          { status: 400, description: 'The original_url is not a valid URL.' },
-          { status: 500, description: 'Internal server error while creating the short URL.' },
-        ],
-      },
-      {
-        method: 'GET',
-        path: '/api/url/:short_url',
-        summary: 'Get a stored URL',
-        description: 'Fetches a single stored URL by its short code.',
-        params: [
-          { name: 'short_url', type: 'string', required: true, description: 'Short code identifying the stored URL.' },
-        ],
-        responses: [
-          { status: 200, description: 'The requested URL document `{ original_url, short_url, creation_date }`.', example: { original_url: 'https://example.com', short_url: 12345, creation_date: '2026-01-01T00:00:00.000Z' } },
-          { status: 500, description: 'No URL found for the given short code; returns `{ error: \'URL not found\' }`.', example: { error: 'URL not found' } },
-          { status: 500, description: 'Internal server error while reading from the database.' },
-        ],
-      },
-      {
-        method: 'DELETE',
-        path: '/api/url/delete/:short_url',
-        summary: 'Delete a short URL',
-        description: 'Deletes a stored URL by its short code.',
-        params: [
-          { name: 'short_url', type: 'string', required: true, description: 'Short code of the URL to delete.' },
-        ],
-        responses: [
-          { status: 200, description: 'The deleted URL document `{ original_url, short_url, creation_date }`.', example: { original_url: 'https://example.com', short_url: 12345, creation_date: '2026-01-01T00:00:00.000Z' } },
-          { status: 500, description: 'No URL found for the given short code; returns `{ error: \'URL not found\' }`.', example: { error: 'URL not found' } },
-          { status: 500, description: 'Internal server error while deleting from the database.' },
-        ],
-      },
-    ],
-  },
-  {
-    label: 'Gemini',
-    endpoints: [
-      {
-        method: 'GET',
-        path: '/api/gemini/getFromText',
-        summary: 'Generate text from a prompt',
-        description:
-          'Generates text using Gemini from a text-only prompt supplied as a query parameter.',
-        params: [
-          { name: 'prompt', type: 'string', required: true, description: 'The prompt to send to the model.' },
-        ],
-        responses: [
-          { status: 200, description: 'Generated text response.' },
-          { status: 400, description: 'The prompt query parameter is missing.', example: { error: 'Prompt is required' } },
-          { status: 503, description: 'Service temporarily unavailable; returns `{ status: 503, warning: \'This service is temporarily unavailable\' }`.', example: { status: 503, warning: 'This service is temporarily unavailable' } },
-        ],
-      },
-      {
-        method: 'GET',
-        path: '/api/gemini/getChatFromText/:prompt',
-        summary: 'Generate text with chat context',
-        description:
-          'Generates a reply using Gemini, maintaining conversation history in the session to build context.',
-        params: [
-          { name: 'prompt', type: 'string', required: true, description: 'The user message for this turn of the conversation.' },
-        ],
-        responses: [
-          { status: 200, description: 'Generated reply text.' },
-          { status: 404, description: 'The `:prompt` path segment is omitted; Express cannot match the route.' },
-          { status: 503, description: 'Gemini service temporarily unavailable.', example: { status: 503, warning: 'This service is temporarily unavailable' } },
-        ],
-      },
-      {
-        method: 'POST',
-        path: '/api/gemini/getFromImage',
-        summary: 'Generate text from image and prompt',
-        description:
-          'Generates text using Gemini from a multimodal input of an uploaded image plus an optional prompt. The uploaded file is deleted after processing.',
-        params: [
-          { name: 'image', type: 'file', required: true, description: 'Uploaded image (multipart/form-data), max 2 MB.' },
-          { name: 'prompt', type: 'string', required: false, description: 'Optional text prompt to accompany the image.' },
-        ],
-        responses: [
-          { status: 200, description: 'Generated text response based on the image and prompt.' },
-          { status: 400, description: 'The prompt or image field is missing.', example: { error: 'Prompt is required' } },
-          { status: 503, description: 'Service temporarily unavailable; returns `{ status: 503, warning: \'This service is temporarily unavailable\' }`.', example: { status: 503, warning: 'This service is temporarily unavailable' } },
-        ],
-      },
-    ],
-  },
+  { label: 'Main', endpoints: [
+    { method: 'GET', path: '/', summary: 'API documentation page', description: 'Cached repository-owned Markdown plus endpoint metadata; restart/watch to refresh.', params: [], responses: [{ status: 200, description: 'HTML documentation.' }] },
+    { method: 'GET', path: '/api/', summary: 'API documentation (JSON)', description: 'Returns this endpoint catalog. Shared API failures use { error, code, requestId } with an X-Request-ID header.', params: [], responses: [{ status: 200, description: 'Array of endpoint groups.' }] },
+    { method: 'GET', path: '/health/live', summary: 'Liveness', description: 'Process is responding; does not probe optional providers.', params: [], responses: [{ status: 200, description: '{ status: "ok" }' }] },
+    { method: 'GET', path: '/health/ready', summary: 'Readiness', description: 'Traffic is accepted only after database/index readiness. Readiness becomes false on draining or loss of DB connection.', params: [], responses: [{ status: 200, description: '{ status: "ready" }' }, { status: 503, description: '{ status: "not_ready" }' }] },
+  ] },
+  { label: 'GitHub', endpoints: [
+    { method: 'GET', path: '/api/github/getCommits/:word', summary: 'Search public commit messages', description: 'Public GitHub commit-message phrase search. The trimmed input is quoted; quotes, backslashes and control characters are rejected. No owner/repo restriction, credentials or cache.',
+      params: [{ name: 'word', type: 'string', required: true, description: 'Message phrase, 1-200 characters.' }, ...githubPagination],
+      responses: [{ status: 200, description: 'GitHub search object with total_count, incomplete_results and items; extra upstream fields are retained.' }, ...errors, ...githubErrors] },
+    { method: 'GET', path: '/api/github/getCommitsByRepoAndOwner/:owner/:repo', summary: 'List repository commits', description: 'Public commit list for a validated owner/repository. Upstream pagination is explicit; native GitHub array shape is retained.',
+      params: [{ name: 'owner', type: 'string', required: true, description: 'Account/organization name, 1-39 characters.' }, { name: 'repo', type: 'string', required: true, description: 'Repository name, 1-100 letters, digits, dots, underscores or hyphens.' }, ...githubPagination],
+      responses: [{ status: 200, description: 'GitHub commit array for the requested page.' }, ...errors, ...githubErrors] },
+  ] },
+  { label: 'URL Shortener', endpoints: [
+    { method: 'GET', path: '/api/url', summary: 'List a page of stored URLs (owner)', description: 'Owner bearer authorization required. Ascending immutable _id order, projected fields and an opaque next cursor.',
+      params: [{ name: 'limit (query)', type: 'number', required: false, description: '1-100; default 25.' }, { name: 'after (query)', type: 'string', required: false, description: '24 lowercase hexadecimal characters; use pagination.next from the previous response.' }],
+      responses: [{ status: 200, description: '{ error: false, message: "URLs found", data: [...], pagination: { limit, next } }. next is null at the end.' }, authorization, ...errors, database] },
+    { method: 'POST', path: '/api/url/create', summary: 'Create or reuse a short URL (owner)', description: 'Owner bearer authorization required. Global exact original-URL reuse without canonicalization. New numeric codes use a cryptographically random 47-bit allocation space, with unique indexes and five bounded attempts.',
+      params: [{ name: 'original_url (body)', type: 'string', required: true, description: 'Absolute HTTP(S) URL, at most 2048 characters, no embedded credentials, whitespace or control characters.' }],
+      responses: [{ status: 200, description: 'Projected document { _id, original_url, short_url, creation_date }, created or reused.' }, authorization, ...errors, database] },
+    { method: 'GET', path: '/api/url/:short_url', summary: 'Get a stored URL (public)', description: 'Public lookup by issued numeric short code; no redirect and no list access.', params: [codeParam],
+      responses: [{ status: 200, description: 'Projected URL document { _id, original_url, short_url, creation_date }.' }, ...errors, notFound, database] },
+    { method: 'DELETE', path: '/api/url/delete/:short_url', summary: 'Delete a short URL (owner)', description: 'Owner bearer authorization required. Deletes the stored mapping; a missing mapping returns 404.', params: [codeParam],
+      responses: [{ status: 200, description: 'Projected deleted URL document.' }, authorization, ...errors, notFound, database] },
+  ] },
 ];

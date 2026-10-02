@@ -1,54 +1,17 @@
-jest.mock('../../api/mocks/mongoDB');
-import mongoDB from '../../api/mocks/mongoDB.js';
-import mongoose from 'mongoose';
 import UrlModel from '../../api/models/UrlModel.js';
 
-beforeAll(() => {
-  mongoDB.connect.mockImplementation(() => {
-    return Promise.resolve();
-  });
-
-  mongoDB.disconnect.mockImplementation(() => {
-    return Promise.resolve();
-  });
+it('strips unknown fields through the actual Mongoose schema', async () => {
+  const record = new UrlModel({ original_url: 'https://example.com', short_url: 9376, unknown: 'discard' });
+  await expect(record.validate()).resolves.toBeUndefined();
+  expect(record.toObject()).not.toHaveProperty('unknown');
+  expect(record.creation_date).toBeInstanceOf(Date);
 });
-describe('UrlModel', () => {
-
-  it('create & save url successfully', async () => {
-    const inputData = {
-      original_url: 'http://test.com',
-      short_url: 123456,
-      creation_date: new Date()
-    };
-    const mockCreate = jest.spyOn(UrlModel, 'create');
-    mockCreate.mockResolvedValue({
-      _id: new mongoose.Types.ObjectId(),
-      ...inputData
-    });
-    const savedUrl = await UrlModel.create(inputData);
-
-    expect(savedUrl._id).toBeDefined();
-    expect(savedUrl.original_url).toBe(inputData.original_url);
-    expect(savedUrl.short_url).toBe(inputData.short_url);
-    expect(savedUrl.creation_date).toBe(inputData.creation_date);
-  });
-
-  it('insert url successfully, but the field not defined in schema should be undefined', async () => {
-    const urlWithInvalidField = {
-      original_url: 'http://test.com',
-      short_url: 123456,
-      creation_date: new Date(),
-      anotherField: 'something'
-    };
-    const savedUrlWithInvalidField = await UrlModel.create(urlWithInvalidField);
-    
-    expect(savedUrlWithInvalidField._id).toBeDefined();
-    expect(savedUrlWithInvalidField.anotherField).toBeUndefined();
-  });
-
+it('rejects invalid persisted input independently of controllers', async () => {
+  await expect(new UrlModel({ original_url: 'file:///tmp', short_url: 1.5 }).validate()).rejects.toThrow();
 });
-
-afterAll(async () => {
-  jest.restoreAllMocks();
-  await mongoDB.disconnect();
+it('declares uniqueness without implicitly creating indexes', () => {
+  expect(UrlModel.schema.options.autoIndex).toBe(false);
+  expect(UrlModel.schema.options.autoCreate).toBe(false);
+  expect(UrlModel.schema.options.bufferCommands).toBe(false);
+  expect(UrlModel.schema.indexes().filter(([, options]) => options.unique)).toHaveLength(2);
 });

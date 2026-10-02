@@ -1,32 +1,33 @@
-# This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs
-
 name: Node.js CI
-
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "main", "master" ]
   pull_request:
-    branches: [ "master" ]
-
+    branches: [ "main", "master" ]
+permissions:
+  contents: read
 jobs:
   build:
-
-    runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        node-version: [18.19.0]
-        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
-
+    runs-on: ubuntu-22.04
     steps:
-    - uses: actions/checkout@v3
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v3
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
       with:
-        node-version: ${{ matrix.node-version }}
+        node-version: '24.x'
         cache: 'npm'
-    - run: npm ci
-    - run: npm run build --if-present
+    - name: Verify declared engines
+      run: |
+        node --version
+        npm --version
+        node -e "if (process.versions.node.split('.')[0] !== '24') process.exit(1)"
+        test "$(npm --version | cut -d. -f1)" = 11
+    - run: npm ci --no-audit --no-fund
+    - name: Install disposable MongoDB test binary
+      run: |
+        curl --fail --location --retry 2 https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu2204-8.0.16.tgz --output "$RUNNER_TEMP/mongodb.tgz"
+        echo "5cb136e579306839ed6e9d99147cbf6f8b4907198ccab1a2f8287bd12fa95cd8  $RUNNER_TEMP/mongodb.tgz" | sha256sum --check
+        tar -xzf "$RUNNER_TEMP/mongodb.tgz" -C "$RUNNER_TEMP"
+        echo "MONGOD_BIN=$RUNNER_TEMP/mongodb-linux-x86_64-ubuntu2204-8.0.16/bin/mongod" >> "$GITHUB_ENV"
     - run: npm run lint
-    - run: npm test
+    - run: npm test -- --runInBand
+    - run: git diff --check
