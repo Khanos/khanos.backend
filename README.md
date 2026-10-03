@@ -166,3 +166,10 @@ The project has the following structure:
 
 ### License
 Licensed under the [GNU Lesser General Public License v3.0](LICENSE).
+
+## Blog
+
+Published blog posts are stored in MongoDB and served by `/api/blog`. Create,
+patch and delete operations reuse owner bearer authentication. See
+[blog architecture, API contract and explicit import/rollout instructions](docs/blog.md)
+before starting this release: the blog uniqueness index must be imported first.

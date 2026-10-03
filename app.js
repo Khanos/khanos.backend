@@ -12,10 +12,11 @@ import MainController from './api/controllers/MainController.js';
 import errorHandler from './api/middlewares/errorHandler.js';
 import ApiError from './api/utils/ApiError.js';
 import { createUrlService } from './api/services/UrlShortenerService.js';
+import { createBlogService } from './api/services/BlogService.js';
 import { createGithubService } from './api/services/GithubService.js';
 
 /** No listen, dotenv or database connection side effects. */
-export function createApp({ config, log = createLogger(), isReady = () => false, urlService, githubService }) {
+export function createApp({ config, log = createLogger(), isReady = () => false, urlService, githubService, blogService }) {
   const app = express();
   app.disable('x-powered-by');
   app.locals.log = log;
@@ -53,9 +54,15 @@ export function createApp({ config, log = createLogger(), isReady = () => false,
   });
   app.use(express.json({ limit: '100kb' }));
   app.use(express.urlencoded({ extended: false, limit: '100kb', parameterLimit: 100 }));
+  app.use('/blog-assets', (req, res, next) => {
+    // Public blog images are embedded by the separately hosted frontend.
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    next();
+  }, express.static(path.join(ROOT, 'public/blog-assets'), { maxAge: '1h' }));
   app.use(express.static(path.join(ROOT, 'public')));
   app.use('/api', createRouter({
     ownerToken: config.ownerToken,
+    blogService: blogService || createBlogService({ log }),
     urlService: urlService || createUrlService({ log }),
     githubService: githubService || createGithubService({ baseUrl: config.githubBase, timeoutMs: config.githubTimeoutMs, log }),
   }));

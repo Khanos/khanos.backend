@@ -35,6 +35,18 @@ export const routes = [
       params: [{ name: 'owner', type: 'string', required: true, description: 'Account/organization name, 1-39 characters.' }, { name: 'repo', type: 'string', required: true, description: 'Repository name, 1-100 letters, digits, dots, underscores or hyphens.' }, ...githubPagination],
       responses: [{ status: 200, description: 'GitHub commit array for the requested page.' }, ...errors, ...githubErrors] },
   ] },
+  { label: 'Blog', endpoints: [
+    { method: 'GET', path: '/api/blog', summary: 'Published blog summaries (public)', description: 'Published, non-future posts only. No article bodies. Shared cache TTL 60 seconds. See docs/blog.md for the full contract.',
+      params: [{ name: 'language (query)', type: 'string', required: false, description: 'en or es.' }, { name: 'category (query)', type: 'string', required: false, description: 'Exact category, maximum 80 characters.' }, { name: 'page (query)', type: 'number', required: false, description: '1-1000; default 1.' }, { name: 'limit (query)', type: 'number', required: false, description: '1-100; default 25.' }, { name: 'sort (query)', type: 'string', required: false, description: 'slug (default, ascending) or publishedAt (descending).' }, { name: 'status (query)', type: 'string', required: false, description: 'Only published is accepted.' }],
+      responses: [{ status: 200, description: '{ data: BlogPostSummary[], pagination: { page, limit, total, pages } }' }, ...errors, database] },
+    { method: 'GET', path: '/api/blog/:slug', summary: 'Published article (public)', description: 'Complete language-prefixed slug must be URL-encoded, e.g. en%2F6-state-of-devs-2026-ai-workflow. Drafts and future posts return 404.',
+      params: [{ name: 'slug', type: 'string', required: true, description: 'Unique language-prefixed slug, at most 200 characters.' }],
+      responses: [{ status: 200, description: 'BlogPostSummary plus Markdown content.' }, { status: 404, description: 'Blog post not found or not public.' }, ...errors, database] },
+    ...['POST', 'PATCH', 'DELETE'].map(method => ({ method, path: method === 'POST' ? '/api/blog' : '/api/blog/:id', summary: `${method} blog post (owner)`,
+      description: 'Existing OWNER_API_TOKEN bearer authentication. Strict input allowlist; no public writes. Full field definitions and examples in docs/blog.md.',
+      params: method === 'POST' ? [{ name: 'body', type: 'object', required: true, description: 'slug, language, title, content, coverImage; optional metadata.' }] : [{ name: 'id', type: 'string', required: true, description: '24 lowercase hex MongoDB ID.' }],
+      responses: [{ status: method === 'POST' ? 201 : 200, description: method === 'DELETE' ? '{ id }' : 'Full blog post.' }, authorization, { status: 404, description: 'Blog post not found.' }, { status: 409, description: 'Duplicate slug.' }, ...errors, database] })),
+  ] },
   { label: 'URL Shortener', endpoints: [
     { method: 'GET', path: '/api/url', summary: 'List a page of stored URLs (owner)', description: 'Owner bearer authorization required. Ascending immutable _id order, projected fields and an opaque next cursor.',
       params: [{ name: 'limit (query)', type: 'number', required: false, description: '1-100; default 25.' }, { name: 'after (query)', type: 'string', required: false, description: '24 lowercase hexadecimal characters; use pagination.next from the previous response.' }],

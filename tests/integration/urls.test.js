@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { start } from '../../lifecycle.js';
 import mongoose from 'mongoose';
 import request from 'supertest';
+import BlogPostModel from '../../api/models/BlogPostModel.js';
 import UrlModel from '../../api/models/UrlModel.js';
 import { createUrlService } from '../../api/services/UrlShortenerService.js';
 import { hashCode } from '../../api/utils/index.js';
@@ -21,6 +22,9 @@ beforeAll(async () => {
   connection = await mongoose.createConnection(mongo.uri, { autoIndex: false, autoCreate: false }).asPromise();
   model = connection.model('UrlModel', UrlModel.schema.clone());
   await model.createCollection();
+  const blogs = connection.model('BlogPostModel', BlogPostModel.schema.clone());
+  await blogs.createCollection();
+  await blogs.createIndexes();
   await model.createIndexes(); // Explicitly isolated, never configured production/test databases.
 }, 20000);
 afterAll(async () => {

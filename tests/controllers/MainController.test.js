@@ -78,12 +78,12 @@ it('exercises every documented method/path against the actual composed app', asy
   const app = appFor({ isReady: () => true, urlService: {
     create: async () => record, getUrl: async () => record, deleteShortUrl: async () => record,
     getUrlList: async () => ({ error: false, data: [] }),
-  }, githubService: { getCommitsByWord: async () => ({ items: [], total_count: 0, incomplete_results: false }), getCommitsByRepoAndOwner: async () => [] } });
-  const values = { word: 'test', owner: 'khanos', repo: 'backend', short_url: '123' };
+  }, blogService: { list: async () => ({ data: [], pagination: {} }), get: async () => ({ slug: 'en/test' }), create: async () => ({ id: '000000000000000000000001' }), update: async () => ({}), delete: async () => ({}) }, githubService: { getCommitsByWord: async () => ({ items: [], total_count: 0, incomplete_results: false }), getCommitsByRepoAndOwner: async () => [] } });
+  const values = { slug: 'en%2Ftest', id: '000000000000000000000001', word: 'test', owner: 'khanos', repo: 'backend', short_url: '123' };
   for (const endpoint of routes.flatMap(group => group.endpoints)) {
-    const path = endpoint.path.replace(/:(word|owner|repo|short_url)/g, (match, key) => values[key]);
+    const path = endpoint.path.replace(/:(word|owner|repo|short_url|slug|id)/g, (match, key) => values[key]);
     const response = await request(app)[endpoint.method.toLowerCase()](path).set('Authorization', authorization).send({ original_url: record.original_url });
-    expect({ method: endpoint.method, path, status: response.status }).toEqual({ method: endpoint.method, path, status: 200 });
+    expect({ method: endpoint.method, path, status: response.status }).toEqual({ method: endpoint.method, path, status: endpoint.method === 'POST' && endpoint.path === '/api/blog' ? 201 : 200 });
     expect(endpoint.responses.some(item => item.status === response.status)).toBe(true);
   }
 });

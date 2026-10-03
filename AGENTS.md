@@ -5,7 +5,7 @@ This file contains guidelines for AI coding agents working in this repository.
 ## Project Context and Discovery
 
 - This is a JavaScript Express 5/Mongoose backend for GitHub commit queries
-  and URL shortening, with EJS documentation pages.
+  URL shortening and bilingual blog storage, with EJS documentation pages.
 - Use npm and preserve `package-lock.json`. `package.json` specifies Node 24.x
   and npm 11.x. There is no build script; the server runs JavaScript directly.
 - Start with the parent workspace guidance and `../questlog/INDEX.md` for related
@@ -47,7 +47,7 @@ validation. Documentation-only changes normally need `git diff --check`.
 - `NODE_ENV` is authoritative; optional legacy `ENV` must agree. Production selects
   `DB_NAME`; development selects `TEST_DB_NAME`, without fallback. `CONNECTION_URL`
   must use MongoDB's URI scheme. No credentials or environment values go in logs.
-- Required `OWNER_API_TOKEN` protects URL create/list/delete at the route boundary.
+- Required `OWNER_API_TOKEN` protects URL create/list/delete and blog POST/PATCH/DELETE at the route boundary.
   Lookup and GitHub reads remain public. Global reuse compares the exact original URL.
   Keep the random token in deployment secrets/trusted server clients, never the frontend.
 - `BIND_HOST` (default `0.0.0.0`) is passed to listen. `HOST` is retired. `PORT` defaults
@@ -56,8 +56,9 @@ validation. Documentation-only changes normally need `git diff --check`.
   query or fragment. `GITHUB_TIMEOUT_MS` bounds retries/body consumption together.
 - `TEST=true` disables the limiter in app-factory tests. Production test mode is
   forbidden; `npm start` refuses TEST bypass rather than opening a test listener.
-- Start from `.env.example`. Startup verifies required unique URL indexes but does not
-  create them. Read `docs/url-integrity-migration.md` before an authorized migration.
+- Start from `.env.example`. Startup verifies required unique URL and blog-slug indexes but does not
+  create them. Read `docs/url-integrity-migration.md` for URL changes and `docs/blog.md` for the
+  explicit blog import/rollout. Import the blog index before restarting this release.
 
 ## Project Structure
 
@@ -165,6 +166,18 @@ validation. Documentation-only changes normally need `git diff --check`.
 - URL uniqueness is mandatory, with auto-index/auto-create disabled. Startup only checks
   indexes; any index/data migration needs separate authorization and a read-only preflight.
 - Never silently delete duplicates or rewrite issued codes.
+
+### Blog
+- Blog follows controller → service factory → Mongoose model, matching existing URL layers.
+- `blogposts` stores Markdown source, language-prefixed unique slug, explicit status and UTC dates.
+- Public reads expose only published, non-future posts; full bodies are excluded from lists.
+- Input allowlists reject Mongo operators/server-owned fields. Writes reuse owner bearer auth.
+- `npm run blog:check` validates 12 preserved originals; `npm run blog:import` defaults to
+  read-only preflight. `--apply` uses explicit migration target env vars. No overwrite/delete.
+- Original MDX is converted by a restricted snapshot converter, never evaluated. Frontend
+  sanitizes the portable Markdown/HTML. Assets live in `public/blog-assets/images`.
+- Keep route metadata, docs and frontend `src/types/blog.ts` response contract consistent.
+- Tests use owned disposable MongoDB, never configured databases. Production rollout is separate.
 
 ### Security
 - Never commit secrets; use `.env` files and load them via `dotenv`.

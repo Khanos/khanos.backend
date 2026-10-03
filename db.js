@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import BlogPostModel from './api/models/BlogPostModel.js';
 import UrlModel from './api/models/UrlModel.js';
 
 export function isRequiredUrlIndex(index, field) {
@@ -22,11 +23,20 @@ export async function requireUrlIndexes(collection) {
     }
   }
 }
+export async function requireBlogIndexes(collection) {
+  const indexes = await readUrlIndexes(collection);
+  if (!indexes.some(index => isRequiredUrlIndex(index, 'slug'))) {
+    const error = new Error('Required blog uniqueness index is missing; run blog import');
+    error.code = 'BLOG_INDEXES_MISSING';
+    throw error;
+  }
+}
 const mongoDB = {
   async connect(config) {
     await mongoose.connect(config.connectionUrl, { dbName: config.databaseName,
       autoIndex: false, autoCreate: false, serverSelectionTimeoutMS: 5000, socketTimeoutMS: 10000 });
     await requireUrlIndexes(UrlModel.collection);
+    await requireBlogIndexes(BlogPostModel.collection);
   },
   async disconnect() { await mongoose.connection.close(); },
   isReady() { return mongoose.connection.readyState === 1; },
