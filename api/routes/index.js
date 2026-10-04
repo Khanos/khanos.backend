@@ -29,6 +29,8 @@ export default function createRouter({ githubService, urlService, ownerToken, bl
     next();
   });
   router.get('/blog', blog.index);
+  router.get('/blog/admin', authorize, blog.adminIndex);
+  router.get('/blog/admin/:id', authorize, blog.adminGet);
   router.get('/blog/:slug', blog.get);
   router.post('/blog', authorize, blog.create);
   router.patch('/blog/:id', authorize, blog.update);

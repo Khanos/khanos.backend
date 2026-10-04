@@ -23,17 +23,30 @@ export function createBlogService({ model = BlogPostModel, now = () => new Date(
     }
   }
   const published = () => ({ status: 'published', publishedAt: { $lte: now() } });
+  async function listPosts({ language, category, page, limit, sort }, visibility, operation) {
+    const filter = { ...visibility, ...(language ? { language } : {}), ...(category ? { categories: category } : {}) };
+    return database(operation, async () => {
+      const [records, total] = await Promise.all([
+        model.find(filter, { content: 0, __v: 0 }).collation({ locale: 'simple' })
+          .sort(sort === 'slug' ? { slug: 1 } : { [sort]: -1, slug: 1 })
+          .skip((page - 1) * limit).limit(limit).lean(),
+        model.countDocuments(filter),
+      ]);
+      return { data: records.map(record => postDto(record)), pagination: { page, limit, total, pages: Math.ceil(total / limit) } };
+    });
+  }
   return {
-    async list({ language, category, page, limit, sort }) {
-      const filter = { ...published(), ...(language ? { language } : {}), ...(category ? { categories: category } : {}) };
-      return database('blog_list', async () => {
-        const [records, total] = await Promise.all([
-          model.find(filter, { content: 0, __v: 0 }).collation({ locale: 'simple' })
-            .sort(sort === 'publishedAt' ? { publishedAt: -1, slug: 1 } : { slug: 1 })
-            .skip((page - 1) * limit).limit(limit).lean(),
-          model.countDocuments(filter),
-        ]);
-        return { data: records.map(record => postDto(record)), pagination: { page, limit, total, pages: Math.ceil(total / limit) } };
+    async list(query) {
+      return listPosts(query, published(), 'blog_list');
+    },
+    async listAdmin(query) {
+      return listPosts(query, query.status ? { status: query.status } : {}, 'blog_admin_list');
+    },
+    async getAdmin(id) {
+      return database('blog_admin_lookup', async () => {
+        const record = await model.findById(id).lean();
+        if (!record) throw missing();
+        return postDto(record, true);
       });
     },
     async get(slug) {

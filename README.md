@@ -169,7 +169,9 @@ Licensed under the [GNU Lesser General Public License v3.0](LICENSE).
 
 ## Blog
 
-Published blog posts are stored in MongoDB and served by `/api/blog`. Create,
-patch and delete operations reuse owner bearer authentication. See
+Published blog posts are stored in MongoDB and served by `/api/blog`. Owner-only
+`GET /api/blog/admin` and `GET /api/blog/admin/:id` include drafts and scheduled
+posts for administration. Admin reads, create, patch and delete reuse owner bearer
+authentication and return `Cache-Control: no-store`. See
 [blog architecture, API contract and explicit import/rollout instructions](docs/blog.md)
 before starting this release: the blog uniqueness index must be imported first.

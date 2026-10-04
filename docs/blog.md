@@ -57,6 +57,9 @@ legacy main list sorts by slug; homepage writing sorts by publication date.
 - `GET /api/blog`: public summaries; only published posts with `publishedAt <= now`.
 - `GET /api/blog/:slug`: public article; URL-encode the complete slug, for example
   `/api/blog/en%2F6-state-of-devs-2026-ai-workflow`.
+- `GET /api/blog/admin`: owner-only summaries, including drafts and future publications.
+- `GET /api/blog/admin/:id`: owner-only full post by MongoDB ID, including `content`,
+  regardless of status/publication date.
 - `POST /api/blog`: owner only; returns 201 with the full post.
 - `PATCH /api/blog/:id`: owner only; returns the full updated post.
 - `DELETE /api/blog/:id`: owner only; returns `{ id }`.
@@ -65,8 +68,12 @@ List queries: `language=en|es`, exact `category`, `page=1..1000`, `limit=1..100`
 (default 25), `sort=slug|publishedAt`, optional `status=published`. Unknown,
 repeated, structured or invalid query values return 400. Draft queries are
 rejected, and draft/future slug reads return 404 even for authenticated owners.
-There is no administrative listing/preview interface in this feature. Save the
-ID from create/update responses when managing drafts.
+Admin list queries use the same strict allowlist and pagination bounds, plus
+`status=draft|published` (omit for both) and `sort=updatedAt|publishedAt|createdAt|slug`.
+The default is `updatedAt` descending. All date sorts descend with ascending
+slug ties; `slug` sorts ascending. `status=published` includes scheduled future
+posts in the admin list. Exact `language` and `category` filters can be combined.
+An empty result has `total=0` and `pages=0`. Lists exclude `content`; load it by ID.
 
 Create requires `slug`, `language`, `title` (1–300 chars), `content` (1–80,000),
 and `coverImage`. Optional fields: `author` (0–200), `anonymous` (boolean),
@@ -97,6 +104,62 @@ Publish via PATCH `{ "status": "published" }`; a missing publication date is
 set to the current UTC time. Future dates schedule public visibility. Patch
 `content` without `excerpt` regenerates the summary. Changing a slug changes
 its URL: retain existing slugs to preserve external links.
+
+## FRONTEND INTEGRATION NOTES
+
+The endpoint names and response types match the shared Blog Admin contract;
+no contract changes are required. The browser talks to the private Astro/Vercel
+server, which attaches `Authorization: Bearer <OWNER_API_TOKEN>` to backend
+requests. Keep that secret in server-only configuration. No query-string token
+or browser bearer flow is supported. The existing global CORS policy is unchanged;
+server-to-server requests do not require a CORS change.
+
+Example requests (the header below is a placeholder, not a credential):
+
+```http
+GET /api/blog/admin?status=draft&language=en&page=1&limit=25&sort=updatedAt
+Authorization: Bearer <OWNER_API_TOKEN>
+
+GET /api/blog/admin/000000000000000000000001
+Authorization: Bearer <OWNER_API_TOKEN>
+```
+
+Example list response:
+
+```json
+{
+  "data": [{
+    "id": "000000000000000000000001",
+    "slug": "en/my-next-post",
+    "language": "en",
+    "title": "My next post",
+    "author": "",
+    "anonymous": false,
+    "excerpt": "Article source in Markdown.",
+    "coverImage": "https://example.com/cover.jpg",
+    "categories": [],
+    "status": "draft",
+    "readingMinutes": 1,
+    "createdAt": "2026-10-04T12:00:00.000Z",
+    "updatedAt": "2026-10-04T12:00:00.000Z"
+  }],
+  "pagination": { "page": 1, "limit": 25, "total": 1, "pages": 1 }
+}
+```
+
+The ID lookup returns that post directly, adding `content`, without a `data`
+wrapper. `publishedAt` and `displayDate` are omitted when absent. List `status`
+reflects stored status: scheduled posts are `published`, and the UI can compare
+`publishedAt` to the current time. There is no separate `scheduled` filter or
+sort-direction parameter. To show all posts, omit `status`.
+
+Admin reads and mutations use `Cache-Control: no-store` at the blog route boundary.
+Do not add a shared cache in the frontend proxy. Missing/invalid credentials
+return 401 `UNAUTHORIZED`; malformed filters/IDs return 400
+`INVALID_BLOG_INPUT`; an absent ID returns 404 `BLOG_NOT_FOUND`; database
+outages return 503 `DATABASE_UNAVAILABLE`. Errors contain `error`, `code`, and
+`requestId`, also supplied in `X-Request-ID`. Public reads retain the 60-second
+shared cache, so editorial changes can take up to that TTL to appear publicly.
 
 ## Import and rollout
 
@@ -146,11 +209,11 @@ No production database/import/deployment is performed by automated tests.
 
 ## Security, caching and configuration
 
-Existing `OWNER_API_TOKEN` protects every write at the route boundary. Public
-reads never forward credentials. No additional authentication system or frontend
-admin UI is introduced. Draft/future reads remain private. Public backend assets explicitly allow embedding
-from the separately hosted frontend and cache for one hour (with ETags). Successful API reads
-and blog HTML allow a 60-second shared cache; errors and mutations use no-store.
+Existing `OWNER_API_TOKEN` protects every write and both admin reads at the route
+boundary. Public reads retain their visibility rules even when owner credentials
+are supplied. Draft/future reads remain private. Public backend assets explicitly allow embedding
+from the separately hosted frontend and cache for one hour (with ETags). Successful public API reads
+and blog HTML allow a 60-second shared cache; admin reads, errors and mutations use no-store.
 Publication/edit/delete visibility may therefore lag by up to 60 seconds in an
 active cache. No persistent frontend content fallback or process memory cache
 can mask database failure. Blog outages return 503, not a false empty list/404.

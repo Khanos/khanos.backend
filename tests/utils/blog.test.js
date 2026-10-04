@@ -1,4 +1,4 @@
-import { blogInput, blogQuery, blogImage, blogDate, blogSlug, blogId, preparedPost, articleText } from '../../api/utils/blog.js';
+import { blogInput, blogQuery, blogAdminQuery, blogImage, blogDate, blogSlug, blogId, preparedPost, articleText } from '../../api/utils/blog.js';
 const input = { slug: 'en/test', language: 'en', title: 'Test', content: 'Test body', coverImage: 'https://example.com/cover.jpg' };
 it('prepares secure defaults and preserves explicitly supplied metadata', () => {
   expect(preparedPost(input)).toMatchObject({ status: 'draft', author: '', anonymous: false, excerpt: 'Test body', readingMinutes: 1, categories: [] });
@@ -38,3 +38,14 @@ it('validates list defaults and explicit pagination/filtering', () => {
 });
 it.each([{ status: 'draft' }, { language: 'fr' }, { language: ['en', 'es'] }, { category: {} }, { sort: 'bad' },
   { page: '0' }, { page: '1001' }, { page: [] }, { page: '1.5' }, { limit: '101' }, { $where: 'bad' }])('rejects invalid public queries %p', query => { expect(() => blogQuery(query)).toThrow(); });
+it('validates admin defaults and filters without widening the public query contract', () => {
+  expect(blogAdminQuery({})).toEqual({ language: undefined, category: undefined, status: undefined, page: 1, limit: 25, sort: 'updatedAt' });
+  expect(blogAdminQuery({ status: 'draft', language: 'es', category: 'react', page: '2', limit: '100', sort: 'createdAt' }))
+    .toEqual({ status: 'draft', language: 'es', category: 'react', page: 2, limit: 100, sort: 'createdAt' });
+  for (const sort of ['updatedAt', 'createdAt']) expect(() => blogQuery({ sort })).toThrow();
+});
+it.each([{ status: '' }, { status: 'scheduled' }, { status: ['draft', 'published'] }, { status: { $ne: 'draft' } },
+  { language: ['en'] }, { category: ['react'] }, { sort: ['slug'] }, { sort: { $gt: '' } }, { page: '01' },
+  { page: '1e2' }, { limit: '0' }, { limit: { $gt: 0 } }, { $where: 'bad' }])('rejects invalid admin queries %p', query => {
+  expect(() => blogAdminQuery(query)).toThrow();
+});
