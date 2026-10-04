@@ -78,7 +78,7 @@ it('exercises every documented method/path against the actual composed app', asy
   const app = appFor({ isReady: () => true, urlService: {
     create: async () => record, getUrl: async () => record, deleteShortUrl: async () => record,
     getUrlList: async () => ({ error: false, data: [] }),
-  }, blogService: { list: async () => ({ data: [], pagination: {} }), get: async () => ({ slug: 'en/test' }), create: async () => ({ id: '000000000000000000000001' }), update: async () => ({}), delete: async () => ({}) }, githubService: { getCommitsByWord: async () => ({ items: [], total_count: 0, incomplete_results: false }), getCommitsByRepoAndOwner: async () => [] } });
+  }, blogService: { list: async () => ({ data: [], pagination: {} }), listAdmin: async () => ({ data: [], pagination: {} }), getAdmin: async () => ({ id: '000000000000000000000001', content: 'Draft' }), get: async () => ({ slug: 'en/test' }), create: async () => ({ id: '000000000000000000000001' }), update: async () => ({}), delete: async () => ({}) }, githubService: { getCommitsByWord: async () => ({ items: [], total_count: 0, incomplete_results: false }), getCommitsByRepoAndOwner: async () => [] } });
   const values = { slug: 'en%2Ftest', id: '000000000000000000000001', word: 'test', owner: 'khanos', repo: 'backend', short_url: '123' };
   for (const endpoint of routes.flatMap(group => group.endpoints)) {
     const path = endpoint.path.replace(/:(word|owner|repo|short_url|slug|id)/g, (match, key) => values[key]);

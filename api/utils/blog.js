@@ -44,19 +44,28 @@ export function blogInput(body, partial = false) {
       data.categories.some(item => !text(item, 80)) || new Set(data.categories).size !== data.categories.length)) throw invalid();
   return data;
 }
-export function blogQuery(query) {
+function listQuery(query, admin) {
   if (Object.keys(query).some(key => !['language', 'category', 'page', 'limit', 'sort', 'status'].includes(key))) throw invalid();
   const number = (value, fallback, max) => {
     if (value === undefined) return fallback;
     if (typeof value !== 'string' || !/^[1-9]\d*$/.test(value) || Number(value) > max) throw invalid();
     return Number(value);
   };
-  if (query.status !== undefined && query.status !== 'published') throw invalid();
+  const statuses = admin ? ['draft', 'published'] : ['published'];
+  const sorts = admin ? ['updatedAt', 'publishedAt', 'createdAt', 'slug'] : ['slug', 'publishedAt'];
+  if (query.status !== undefined && !statuses.includes(query.status)) throw invalid();
   if (query.language !== undefined && !['en', 'es'].includes(query.language)) throw invalid();
   if (query.category !== undefined && !text(query.category, 80)) throw invalid();
-  if (query.sort !== undefined && !['slug', 'publishedAt'].includes(query.sort)) throw invalid();
+  if (query.sort !== undefined && !sorts.includes(query.sort)) throw invalid();
   return { language: query.language, category: query.category, page: number(query.page, 1, 1000),
-    limit: number(query.limit, 25, 100), sort: query.sort || 'slug' };
+    limit: number(query.limit, 25, 100), sort: query.sort || (admin ? 'updatedAt' : 'slug'),
+    ...(admin ? { status: query.status } : {}) };
+}
+export function blogQuery(query) {
+  return listQuery(query, false);
+}
+export function blogAdminQuery(query) {
+  return listQuery(query, true);
 }
 export function articleText(body) {
   return body.replace(/```[\s\S]*?```/g, '').replace(/<[^>]*>/g, '')

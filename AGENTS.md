@@ -47,7 +47,8 @@ validation. Documentation-only changes normally need `git diff --check`.
 - `NODE_ENV` is authoritative; optional legacy `ENV` must agree. Production selects
   `DB_NAME`; development selects `TEST_DB_NAME`, without fallback. `CONNECTION_URL`
   must use MongoDB's URI scheme. No credentials or environment values go in logs.
-- Required `OWNER_API_TOKEN` protects URL create/list/delete and blog POST/PATCH/DELETE at the route boundary.
+- Required `OWNER_API_TOKEN` protects URL create/list/delete, blog POST/PATCH/DELETE,
+  and GET `/api/blog/admin` and `/api/blog/admin/:id` at the route boundary.
   Lookup and GitHub reads remain public. Global reuse compares the exact original URL.
   Keep the random token in deployment secrets/trusted server clients, never the frontend.
 - `BIND_HOST` (default `0.0.0.0`) is passed to listen. `HOST` is retired. `PORT` defaults
@@ -171,6 +172,8 @@ validation. Documentation-only changes normally need `git diff --check`.
 - Blog follows controller → service factory → Mongoose model, matching existing URL layers.
 - `blogposts` stores Markdown source, language-prefixed unique slug, explicit status and UTC dates.
 - Public reads expose only published, non-future posts; full bodies are excluded from lists.
+- Owner admin reads include drafts/future posts, list by updatedAt descending by default,
+  and retrieve full content by MongoDB ID. Admin reads and writes use no-store.
 - Input allowlists reject Mongo operators/server-owned fields. Writes reuse owner bearer auth.
 - `npm run blog:check` validates 12 preserved originals; `npm run blog:import` defaults to
   read-only preflight. `--apply` uses explicit migration target env vars. No overwrite/delete.

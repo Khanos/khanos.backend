@@ -25,6 +25,173 @@ afterAll(async () => { if (connection) await connection.close(); if (mongo) awai
 beforeEach(async () => { await model.deleteMany({}); });
 const create = body => request(app).post('/api/blog').set('Authorization', authorization).send(body);
 const get = slug => request(app).get(`/api/blog/${encodeURIComponent(slug)}`);
+const adminList = query => request(app).get('/api/blog/admin').set('Authorization', authorization).query(query || {});
+const adminGet = id => request(app).get(`/api/blog/admin/${id}`).set('Authorization', authorization);
+
+it('requires owner authorization on both admin reads before accessing persistence', async () => {
+  const list = jest.spyOn(model, 'find');
+  const lookup = jest.spyOn(model, 'findById');
+  try {
+    for (const path of ['/api/blog/admin', '/api/blog/admin/000000000000000000000001']) {
+      for (const header of [undefined, 'Bearer incorrect-owner-token-0000000000000000', 'Basic invalid']) {
+        let req = request(app).get(path);
+        if (header) req = req.set('Authorization', header);
+        const response = await req;
+        expect(response.status).toBe(401);
+        expect(response.headers['www-authenticate']).toBe('Bearer');
+        expect(response.headers['cache-control']).toBe('no-store');
+        expect(response.body).toEqual({ error: 'Owner authorization required', code: 'UNAUTHORIZED', requestId: response.headers['x-request-id'] });
+      }
+      expect((await request(app).get(path).query({ token: authorization })).status).toBe(401);
+    }
+    expect(list).not.toHaveBeenCalled();
+    expect(lookup).not.toHaveBeenCalled();
+  } finally { list.mockRestore(); lookup.mockRestore(); }
+});
+
+it('shows draft A, published B and future C only to the owner; C becomes public at its publication time', async () => {
+  const posts = [];
+  for (const body of [input('en/draft-a', { status: 'draft', publishedAt: undefined }), input('en/published-b'),
+    input('es/future-c', { publishedAt: '2026-10-04T00:00:00Z' })]) {
+    const response = await create(body);
+    expect(response.status).toBe(201);
+    expect(response.headers['cache-control']).toBe('no-store');
+    posts.push(response.body);
+  }
+  const publicList = await request(app).get('/api/blog').set('Authorization', authorization);
+  expect(publicList.body.data.map(post => post.slug)).toEqual(['en/published-b']);
+  expect(publicList.headers['cache-control']).toBe('public, max-age=0, s-maxage=60');
+  for (const post of posts) {
+    const publicPost = await get(post.slug).set('Authorization', authorization);
+    expect(publicPost.status).toBe(post.slug === 'en/published-b' ? 200 : 404);
+    const privatePost = await adminGet(post.id);
+    expect(privatePost.status).toBe(200);
+    expect(privatePost.body).toEqual(post);
+    expect(privatePost.headers['cache-control']).toBe('no-store');
+  }
+  const ownerList = await adminList();
+  expect(ownerList.status).toBe(200);
+  expect(ownerList.headers['cache-control']).toBe('no-store');
+  expect(ownerList.body.pagination).toEqual({ page: 1, limit: 25, total: 3, pages: 1 });
+  expect(ownerList.body.data.map(post => post.id).sort()).toEqual(posts.map(post => post.id).sort());
+  for (const summary of ownerList.body.data) {
+    expect(summary).not.toHaveProperty('content');
+    expect(summary).not.toHaveProperty('_id');
+    expect(summary).not.toHaveProperty('__v');
+  }
+  const later = appFor({ blogService: createBlogService({ model, now: () => new Date('2026-10-04T00:00:00Z') }) });
+  expect((await request(later).get('/api/blog')).body.data.map(post => post.slug)).toEqual(['en/published-b', 'es/future-c']);
+  expect((await request(later).get('/api/blog/es%2Ffuture-c')).status).toBe(200);
+  expect((await request(later).get('/api/blog/en%2Fdraft-a')).status).toBe(404);
+});
+
+it('filters admin status/language/category and paginates every allowed sort with stable slug ties', async () => {
+  const posts = [];
+  for (const body of [input('en/a-post', { status: 'draft', publishedAt: undefined, categories: ['react'] }),
+    input('en/b-post', { categories: ['react'] }), input('es/c-post', { publishedAt: '2030-01-01' })]) {
+    posts.push((await create(body)).body);
+  }
+  // Fixed timestamps in this disposable database make ordering deterministic.
+  const dates = ['2026-01-01', '2026-02-01', '2026-03-01'];
+  for (let i = 0; i < posts.length; i++) {
+    await model.collection.updateOne({ _id: new mongoose.Types.ObjectId(posts[i].id) },
+      { $set: { createdAt: new Date(dates[i]), updatedAt: new Date(dates[2 - i]) } });
+  }
+  expect((await adminList({ status: 'draft' })).body.data.map(post => post.slug)).toEqual(['en/a-post']);
+  expect((await adminList({ status: 'published' })).body.pagination.total).toBe(2);
+  expect((await adminList({ language: 'es' })).body.data.map(post => post.slug)).toEqual(['es/c-post']);
+  expect((await adminList({ status: 'published', language: 'en', category: 'react' })).body.data.map(post => post.slug)).toEqual(['en/b-post']);
+  expect((await adminList({ category: 'absent' })).body).toEqual({ data: [], pagination: { page: 1, limit: 25, total: 0, pages: 0 } });
+  for (const [sort, expected] of [[undefined, ['en/a-post', 'en/b-post', 'es/c-post']],
+    ['updatedAt', ['en/a-post', 'en/b-post', 'es/c-post']], ['createdAt', ['es/c-post', 'en/b-post', 'en/a-post']],
+    ['publishedAt', ['es/c-post', 'en/b-post', 'en/a-post']], ['slug', ['en/a-post', 'en/b-post', 'es/c-post']]]) {
+    const first = await adminList({ ...(sort ? { sort } : {}), limit: 2 });
+    expect(first.body.data.map(post => post.slug)).toEqual(expected.slice(0, 2));
+    expect(first.body.pagination).toEqual({ page: 1, limit: 2, total: 3, pages: 2 });
+    const second = await adminList({ ...(sort ? { sort } : {}), limit: 2, page: 2 });
+    expect(second.body.data.map(post => post.slug)).toEqual(expected.slice(2));
+  }
+  await model.collection.updateMany({}, { $set: { updatedAt: new Date('2026-01-01') } });
+  expect((await adminList()).body.data.map(post => post.slug)).toEqual(['en/a-post', 'en/b-post', 'es/c-post']);
+  expect((await adminList({ page: 1000, limit: 100 })).body.data).toEqual([]);
+});
+
+it.each(['status=scheduled', 'status=', 'language=fr', 'page=0', 'page=1001', 'page=1.5', 'limit=101', 'limit=-1',
+  'sort=title', 'sort=updatedAt&sort=slug', 'status=draft&status=published', 'language=en&language=es',
+  'page=1&page=2', 'limit=1&limit=2', 'category=react&category=next', 'category=', 'category=' + 'x'.repeat(81),
+  'status[$ne]=draft', 'language[$in][]=en', 'category[$regex]=.*', 'sort[$gt]=slug', 'page[x]=1',
+  '$where=bad', 'unknown=value', 'token=bad'])('rejects malformed or unsafe admin query %s', async query => {
+  const response = await request(app).get(`/api/blog/admin?${query}`).set('Authorization', authorization);
+  expect(response.status).toBe(400);
+  expect(response.headers['cache-control']).toBe('no-store');
+  expect(response.body).toEqual({ error: 'Invalid blog input', code: 'INVALID_BLOG_INPUT', requestId: response.headers['x-request-id'] });
+});
+
+it('returns safe admin ID errors and masks database failures for both reads', async () => {
+  for (const id of ['invalid', 'A'.repeat(24), '%24where', '%ZZ']) {
+    const response = await adminGet(id);
+    expect(response.status).toBe(400);
+    expect(response.body).toMatchObject({ code: id === '%ZZ' ? 'INVALID_REQUEST' : 'INVALID_BLOG_INPUT', requestId: response.headers['x-request-id'] });
+    expect(response.headers['cache-control']).toBe('no-store');
+  }
+  const missing = await adminGet('000000000000000000000001');
+  expect(missing.status).toBe(404);
+  expect(missing.body).toEqual({ error: 'Blog post not found', code: 'BLOG_NOT_FOUND', requestId: missing.headers['x-request-id'] });
+  for (const [method, read] of [['countDocuments', () => adminList()], ['findById', () => adminGet('000000000000000000000001')]]) {
+    const failure = new Error('private database credentials');
+    const spy = method === 'findById' ? jest.spyOn(model, method).mockReturnValueOnce({ lean: async () => { throw failure; } })
+      : jest.spyOn(model, method).mockRejectedValueOnce(failure);
+    try {
+      const response = await read();
+      expect(response.status).toBe(503);
+      expect(response.body).toEqual({ error: 'Database unavailable', code: 'DATABASE_UNAVAILABLE', requestId: response.headers['x-request-id'] });
+      expect(response.headers['cache-control']).toBe('no-store');
+    } finally { spy.mockRestore(); }
+  }
+});
+
+it('supports the complete admin editorial flow while preserving write derivation and public visibility', async () => {
+  const body = input('en/admin-flow'); delete body.status; delete body.publishedAt;
+  const created = await create(body);
+  expect(created.status).toBe(201);
+  expect(created.body.status).toBe('draft');
+  expect((await adminGet(created.body.id)).body).toEqual(created.body);
+  const patch = data => request(app).patch(`/api/blog/${created.body.id}`).set('Authorization', authorization).send(data);
+  const changed = await patch({ content: Array(201).fill('word').join(' ') });
+  expect(changed.status).toBe(200);
+  expect(changed.body.status).toBe('draft');
+  expect(changed.body.excerpt).toBe(changed.body.content.slice(0, 400));
+  expect(changed.body.readingMinutes).toBe(2);
+  expect((await get(body.slug)).status).toBe(404);
+  const published = await patch({ status: 'published' });
+  expect(published.body.publishedAt).toBe('2026-10-03T00:00:00.000Z');
+  expect((await get(body.slug)).body).toEqual(published.body);
+  const edited = await patch({ content: 'Published edit', excerpt: 'Explicit summary' });
+  expect(edited.body.excerpt).toBe('Explicit summary');
+  expect(edited.body.readingMinutes).toBe(1);
+  expect((await get(body.slug)).body.content).toBe('Published edit');
+  const scheduled = await patch({ publishedAt: '2030-01-01T00:00:00Z' });
+  expect(scheduled.body.status).toBe('published');
+  expect((await get(body.slug)).status).toBe(404);
+  expect((await adminGet(created.body.id)).body).toEqual(scheduled.body);
+  const deleted = await request(app).delete(`/api/blog/${created.body.id}`).set('Authorization', authorization);
+  expect(deleted.body).toEqual({ id: created.body.id });
+  expect((await adminGet(created.body.id)).status).toBe(404);
+  expect((await get(body.slug)).status).toBe(404);
+  for (const response of [created, changed, published, edited, scheduled, deleted]) {
+    expect(response.headers['cache-control']).toBe('no-store');
+  }
+});
+
+it.each(['post', 'patch'])('rejects Mongo operators in owner %s bodies without changing stored data', async method => {
+  const created = await create(input());
+  const response = await request(app)[method](method === 'post' ? '/api/blog' : `/api/blog/${created.body.id}`)
+    .set('Authorization', authorization).send(method === 'post' ? { ...input('en/unsafe'), $set: { status: 'published' } } : { title: { $ne: null } });
+  expect(response.status).toBe(400);
+  expect(response.body.code).toBe('INVALID_BLOG_INPUT');
+  expect((await adminGet(created.body.id)).body).toEqual(created.body);
+  expect(await model.countDocuments()).toBe(1);
+});
 
 it('lists summaries, loads published bodies, filters languages/categories and preserves ordering', async () => {
   await create(input('en/b-post', { categories: ['react'] }));
