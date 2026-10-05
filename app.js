@@ -4,7 +4,6 @@ import express from 'express';
 import compression from 'compression';
 import helmet from 'helmet';
 import cors from 'cors';
-import rateLimit from 'express-rate-limit';
 import { ROOT } from './config.js';
 import { createLogger, requestContext } from './logger.js';
 import createRouter from './api/routes/index.js';
@@ -14,11 +13,14 @@ import ApiError from './api/utils/ApiError.js';
 import { createUrlService } from './api/services/UrlShortenerService.js';
 import { createBlogService } from './api/services/BlogService.js';
 import { createGithubService } from './api/services/GithubService.js';
+import createUrlRateLimit from './api/middlewares/urlRateLimit.js';
+import { createCounter } from './rateLimitStore.js';
 
 /** No listen, dotenv or database connection side effects. */
-export function createApp({ config, log = createLogger(), isReady = () => false, urlService, githubService, blogService }) {
+export function createApp({ config, log = createLogger(), isReady = () => false, urlService, githubService, blogService, rateLimitCounter }) {
   const app = express();
   app.disable('x-powered-by');
+  app.set('trust proxy', config.trustedProxyCidrs);
   app.locals.log = log;
   app.set('views', path.join(ROOT, 'views'));
   app.set('view engine', 'ejs');
@@ -43,10 +45,7 @@ export function createApp({ config, log = createLogger(), isReady = () => false,
     const ready = isReady();
     res.status(ready ? 200 : 503).json({ status: ready ? 'ready' : 'not_ready' });
   });
-  if (!config.test) app.use(rateLimit({ windowMs: config.rateLimitWindowMs, limit: config.rateLimitMax,
-    standardHeaders: true, legacyHeaders: false,
-    handler(req, res, next) { next(new ApiError(429, 'RATE_LIMITED', 'Too many requests')); },
-  }));
+  if (!config.test) app.use(createUrlRateLimit({ config, counter: rateLimitCounter || createCounter(config) }));
   // Return retirement responses without parsing a legacy request body.
   app.use('/api/gemini', (req, res) => {
     req.logRoute = '/api/gemini/*';
