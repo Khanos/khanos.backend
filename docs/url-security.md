@@ -74,6 +74,9 @@ Keep the prefix stable across deployments and distinct from frontend or unrelate
 Do not rotate it to clear an incident's quota. Counter keys hash class/identity; no raw IP, bearer
 value or destination is sent as a key. The store still sees server egress and request timing.
 Grant only the provider permissions required for these counters and retain TLS credentials privately.
+Keep the add-on's `noeviction` memory policy: evicting live keys would reset quotas before expiry.
+Capacity errors must fail closed. The Mini plan has no persistence; a Redis service restart can
+reset active windows, although application dyno restarts continue sharing existing counters.
 
 `RATE_LIMIT_STORE_TIMEOUT_MS` bounds each command (default 1000, maximum 5000 ms); each
 request uses emergency and operation counters sequentially (at most two command deadlines).
