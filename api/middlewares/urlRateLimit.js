@@ -6,6 +6,7 @@ import ApiError from '../utils/ApiError.js';
 /** Quota classification never trusts a credential's presence or caller-supplied IP headers. */
 export default function createUrlRateLimit({ config, counter }) {
   const verify = createOwnerVerifier(config.ownerToken);
+  const verifyAdmission = config.admissionToken && createOwnerVerifier(config.admissionToken);
   return async (req, res, next) => {
     const path = req.path.toLowerCase().replace(/\/+$/, '');
     const isUrl = path === '/api/url' || path.startsWith('/api/url/');
@@ -33,6 +34,9 @@ export default function createUrlRateLimit({ config, counter }) {
       const safety = await counter.consume('safety:aggregate', config.urlRateLimitWindowMs);
       // Globally blocked new identities must not allocate another counter key.
       if (safety.count > config.rateLimitSafetyMax) return reject('safety', safety.resetMs);
+      // Authenticated admission uses its own four buckets, never the unrelated API
+      // per-egress-IP budget. It still pays the shared backend emergency ceiling.
+      if (req.method === 'POST' && path === '/api/admission' && verifyAdmission?.(req.get('Authorization'))) return next();
       const operation = await counter.consume(`${bucket}:${identity}`, windowMs);
       if (operation.count > maximum) return reject(bucket, operation.resetMs);
       next();

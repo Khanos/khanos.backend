@@ -15,6 +15,7 @@ import { createBlogService } from './api/services/BlogService.js';
 import { createGithubService } from './api/services/GithubService.js';
 import createUrlRateLimit from './api/middlewares/urlRateLimit.js';
 import { createCounter } from './rateLimitStore.js';
+import createAdmission from './api/middlewares/admission.js';
 
 /** No listen, dotenv or database connection side effects. */
 export function createApp({ config, log = createLogger(), isReady = () => false, urlService, githubService, blogService, rateLimitCounter }) {
@@ -47,7 +48,10 @@ export function createApp({ config, log = createLogger(), isReady = () => false,
     const ready = isReady();
     res.status(ready ? 200 : 503).json({ status: ready ? 'ready' : 'not_ready' });
   });
-  if (!config.test) app.use(createUrlRateLimit({ config, counter: rateLimitCounter || createCounter(config) }));
+  const counter = rateLimitCounter || createCounter(config);
+  if (!config.test) app.use(createUrlRateLimit({ config, counter }));
+  // Authenticate before parsing; the dedicated credential cannot perform owner operations.
+  app.post('/api/admission', ...createAdmission({ config, counter }));
   // Return retirement responses without parsing a legacy request body.
   app.use('/api/gemini', (req, res) => {
     req.logRoute = '/api/gemini/*';

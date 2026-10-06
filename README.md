@@ -83,6 +83,20 @@ then close MongoDB and the one shared Redis connection within `SHUTDOWN_TIMEOUT_
 (default 10 seconds); failed bounded cleanup
 logs a safe outcome and exits nonzero. HTTP headers/requests also have bounded timeouts.
 
+## Frontend admission without a Vercel plan upgrade
+
+`POST /api/admission` uses the existing shared counter/Redis connection for the
+frontend's aggregate owner (5000/minute), per-IP owner (120/minute), failed owner
+(20/10 minutes), and public resolver (60/minute) buckets. Configure an independent
+server-only `RATE_LIMIT_SECRET` matching Vercel; it grants admission access only,
+never owner operations. An unset secret leaves the endpoint disabled with 503.
+The authenticated frontend asserts only Vercel's validated ingress IP, never
+arbitrary visitor forwarding headers. IPv6 /56 grouping and hashed keys remain.
+Authenticated admission pays the emergency ceiling and its frontend bucket;
+it bypasses the unrelated per-egress-IP API quota. See
+[operations and backend-first rollout](docs/url-security.md#frontend-admission).
+No additional Redis service, Vercel Firewall rule or Vercel plan change is required.
+
 ## API contracts and access
 
 - URL create/list/delete require the owner bearer credential in `Authorization`. Public lookup

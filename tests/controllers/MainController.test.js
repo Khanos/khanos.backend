@@ -1,7 +1,7 @@
 import os from 'node:os';
 import request from 'supertest';
 import { routes } from '../../api/routes/docs.js';
-import { appFor, authorization } from '../helpers/app.js';
+import { appFor, authorization, config } from '../helpers/app.js';
 const server = appFor();
 
 describe('.index', () => {
@@ -75,15 +75,17 @@ it('serves cached documentation and static assets from another working directory
 
 it('exercises every documented method/path against the actual composed app', async () => {
   const record = { original_url: 'https://example.com', short_url: 123 };
-  const app = appFor({ isReady: () => true, urlService: {
+  const admissionToken = 'test-admission-credential-0000000000000000000';
+  const app = appFor({ config: { ...config, admissionToken }, isReady: () => true, urlService: {
     create: async () => record, getUrl: async () => record, deleteShortUrl: async () => record,
     getUrlList: async () => ({ error: false, data: [] }),
   }, blogService: { list: async () => ({ data: [], pagination: {} }), listAdmin: async () => ({ data: [], pagination: {} }), getAdmin: async () => ({ id: '000000000000000000000001', content: 'Draft' }), get: async () => ({ slug: 'en/test' }), create: async () => ({ id: '000000000000000000000001' }), update: async () => ({}), delete: async () => ({}) }, githubService: { getCommitsByWord: async () => ({ items: [], total_count: 0, incomplete_results: false }), getCommitsByRepoAndOwner: async () => [] } });
   const values = { slug: 'en%2Ftest', id: '000000000000000000000001', word: 'test', owner: 'khanos', repo: 'backend', short_url: '123' };
   for (const endpoint of routes.flatMap(group => group.endpoints)) {
     const path = endpoint.path.replace(/:(word|owner|repo|short_url|slug|id)/g, (match, key) => values[key]);
-    const response = await request(app)[endpoint.method.toLowerCase()](path).set('Authorization', authorization).send({ original_url: record.original_url });
-    expect({ method: endpoint.method, path, status: response.status }).toEqual({ method: endpoint.method, path, status: endpoint.method === 'POST' && endpoint.path === '/api/blog' ? 201 : 200 });
+    const admission = endpoint.path === '/api/admission';
+    const response = await request(app)[endpoint.method.toLowerCase()](path).set('Authorization', admission ? `Bearer ${admissionToken}` : authorization).send(admission ? { kind: 'resolver', clientIp: '192.0.2.1', environment: 'production' } : { original_url: record.original_url });
+    expect({ method: endpoint.method, path, status: response.status }).toEqual({ method: endpoint.method, path, status: admission ? 204 : endpoint.method === 'POST' && endpoint.path === '/api/blog' ? 201 : 200 });
     expect(endpoint.responses.some(item => item.status === response.status)).toBe(true);
   }
 });

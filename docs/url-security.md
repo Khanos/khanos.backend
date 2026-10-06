@@ -91,6 +91,48 @@ resumes the remaining store quota; an uncertain successful increment is delibera
 on Authorization. Logs report only safe class (`anonymous`, `relay`, `owner`, `api`, `safety`)
 and outcome (`limited`, `unavailable`) with the existing request correlation context.
 
+## Frontend admission
+
+The trusted Vercel frontend calls `POST /api/admission` with a separate
+`RATE_LIMIT_SECRET` bearer, identical on Heroku and Vercel Preview/Production.
+It must be 32–256 random printable non-space ASCII, distinct from OWNER_API_TOKEN
+and all Basic credentials. Configure it privately through deployment secret
+managers; never paste it into chat or command-line arguments. It grants no URL
+or blog owner access. Unset means the endpoint is disabled with uncached 503;
+an invalid/missing bearer returns uncached 401 before JSON parsing.
+
+Only this authenticated server can assert `clientIp` in the strict 1 KiB JSON
+body alongside `kind` and `environment` (production or preview). The frontend uses Vercel's overwritten x-real-ip, validates
+IPv4/IPv6, and ignores Host/XFF/Forwarded. Backend forwarding headers do not set
+frontend identities. IPv6 /56 grouping and pre-store SHA256 hashing protect keys.
+The server owns four fixed independent policies: aggregate 5000/minute (constant
+owner emergency key), owner 120/minute per IP, failure 20/10 minutes per IP, and
+resolver 60/minute per IP. Invalid kinds, IPs or extra fields return 400; budgets,
+windows and key names cannot be supplied by callers. Success is empty 204,
+exhaustion is 429 with bounded Retry-After, and counter failure is safe 503.
+All responses are no-store and vary on Authorization.
+
+The same process counter and Redis connection serve API and frontend policies.
+Frontend keys use a `frontend:<environment>:<kind>:` classification inside the existing hashed
+RATE_LIMIT_PREFIX namespace, avoiding interference with URL/API buckets and isolating preview tests from
+production quotas.
+Every admission call still pays the backend emergency ceiling; verified admission
+bypasses only the unrelated 50/5-minute API budget, which would pool Vercel egress
+IP addresses. Invalid admission bearers use the ordinary API budget. Owner
+requests make two admission calls, failed owner authentication a third, and
+resolvers one; allowed operations then consume their existing backend quota.
+Extra HTTPS/Redis work adds latency/load and may exhaust backend emergency
+capacity before the frontend owner ceiling. Health exemptions stay unchanged.
+
+This additive endpoint lets the frontend keep its current Vercel plan and use
+the existing Heroku Redis instead of requiring four Vercel Firewall SDK rules.
+No Redis credentials leave Heroku. Deploy this backend first with the matching
+secret; verify health and a synthetic authenticated 204 before deploying the
+frontend Preview, then prove real HTTPS identities, shared buckets, 429 and
+bounded 503/recovery. Older frontend versions remain compatible. Backend
+rollback after the new frontend deploy disables admission; coordinate a
+compatible frontend rollback first. Never clear counters as a rollback step.
+
 ## Ingress and staged verification
 
 `RATE_LIMIT_PROXY_MODE=cidr` is the default. `TRUSTED_PROXY_CIDRS` defaults empty
