@@ -21,6 +21,11 @@ const githubPagination = [
   { name: 'per_page (query)', type: 'number', required: false, description: 'Page size 1-100; default 30.' },
 ];
 export const routes = [
+  { label: 'Frontend admission', endpoints: [
+    { method: 'POST', path: '/api/admission', summary: 'Trusted frontend rate-limit admission', description: 'Server-only RATE_LIMIT_SECRET bearer required, distinct from OWNER_API_TOKEN. Fixed aggregate, owner, failure and resolver policies share the existing counter store. Never accepts visitor forwarding headers as identity. See docs/url-security.md.',
+      params: [{ name: 'environment (body)', type: 'string', required: true, description: 'production or preview; isolated counter namespaces.' }, { name: 'kind (body)', type: 'string', required: true, description: 'aggregate, owner, failure or resolver.' }, { name: 'clientIp (body)', type: 'string', required: true, description: 'Validated Vercel ingress IPv4/IPv6, asserted only by the authenticated frontend.' }],
+      responses: [{ status: 204, description: 'Admission granted.' }, { status: 401, description: 'Admission authorization required.' }, ...errors, { status: 503, description: 'Admission disabled or shared counter unavailable.' }] },
+  ] },
   { label: 'Main', endpoints: [
     { method: 'GET', path: '/', summary: 'API documentation page', description: 'Cached repository-owned Markdown plus endpoint metadata; restart/watch to refresh.', params: [], responses: [{ status: 200, description: 'HTML documentation.' }] },
     { method: 'GET', path: '/api/', summary: 'API documentation (JSON)', description: 'Returns this endpoint catalog. Shared API failures use { error, code, requestId } with an X-Request-ID header.', params: [], responses: [{ status: 200, description: 'Array of endpoint groups.' }] },

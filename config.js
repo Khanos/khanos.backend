@@ -54,6 +54,7 @@ export function parseConfig(env) {
   if (!/^[a-z\d:_-]{1,64}$/i.test(rateLimitPrefix)) throw new Error('Invalid RATE_LIMIT_PREFIX');
   const databaseName = environment === 'production' ? env.DB_NAME : env.TEST_DB_NAME;
   if (typeof env.OWNER_API_TOKEN !== 'string' || !/^[\x21-\x7e]{32,256}$/.test(env.OWNER_API_TOKEN)) throw new Error('OWNER_API_TOKEN must contain 32-256 non-whitespace ASCII characters');
+  if (env.RATE_LIMIT_SECRET !== undefined && (typeof env.RATE_LIMIT_SECRET !== 'string' || !/^[\x21-\x7e]{32,256}$/.test(env.RATE_LIMIT_SECRET) || env.RATE_LIMIT_SECRET === env.OWNER_API_TOKEN)) throw new Error('Invalid RATE_LIMIT_SECRET');
   if (!test && (!databaseName || !/^mongodb(?:\+srv)?:\/\//.test(env.CONNECTION_URL || ''))) throw new Error('Database configuration is required');
   if (!test && (typeof databaseName !== 'string' || !/^[a-z\d_-]{1,63}$/i.test(databaseName))) throw new Error('Invalid database name');
   const bindHost = env.BIND_HOST || '0.0.0.0';
@@ -63,6 +64,7 @@ export function parseConfig(env) {
       githubBase.search || githubBase.hash || !githubBase.pathname.endsWith('/')) throw new Error('Invalid GitHub base URL');
   return Object.freeze({
     environment, test, databaseName, connectionUrl: env.CONNECTION_URL, ownerToken: env.OWNER_API_TOKEN,
+    admissionToken: env.RATE_LIMIT_SECRET,
     // Preserve the former wildcard bind unless an explicit bind address is supplied.
     bindHost,
     port: integer(env, 'PORT', test ? 0 : 3000, test ? 0 : 1, 65535),

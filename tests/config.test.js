@@ -55,3 +55,11 @@ it('makes test mode explicit without connecting to any DB', () => {
   expect(parseConfig({ OWNER_API_TOKEN: token, TEST: 'true' }).test).toBe(true);
   expect(parseConfig({ OWNER_API_TOKEN: token, NODE_ENV: 'test' }).port).toBe(0);
 });
+it('optionally enables admission with an independent, valid secret without disclosing it', () => {
+  const secret = 'test-admission-credential-0000000000000000000';
+  expect(parseConfig({ ...base, RATE_LIMIT_SECRET: secret }).admissionToken).toBe(secret);
+  expect(parseConfig(base).admissionToken).toBeUndefined();
+  for (const value of ['', 'short', 'x'.repeat(257), token, null, ['x'.repeat(32)], 'x'.repeat(32) + '\n']) {
+    expect(() => parseConfig({ ...base, RATE_LIMIT_SECRET: value })).toThrow('Invalid RATE_LIMIT_SECRET');
+  }
+});
