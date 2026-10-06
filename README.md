@@ -19,7 +19,8 @@ The Google Gemini API has been retired. Legacy `/api/gemini` and `/api/gemini/*`
 endpoints now respond with HTTP **410 Gone** and `{ "error": "Google Gemini API has been retired." }`.
 The backend no longer calls Google, accepts image uploads, or stores chat sessions.
 
-API requests use `helmet`, CORS, `compression`, and `express-rate-limit`, with a shared
+API requests use `helmet`, CORS, `compression`, and scoped rate limits with IPv6 client
+normalization from `express-rate-limit`, with a shared
 error-handling middleware for errors that escape controllers. Controllers, services and models
 stay in separate layers: controllers handle HTTP, services own the outbound calls, models own the data.
 
@@ -49,6 +50,17 @@ GitHub uses an HTTPS base URL ending in `/`, a total 5-second request deadline, 
 attempts for network failures or upstream 502/503/504. It does not retry rate limits, other
 HTTP failures, bad JSON or cancellation. No GitHub credentials or cache are configured.
 
+Rate limiting requires explicit deployment configuration before restarting this release.
+Use `RATE_LIMIT_STORE=memory` with `RATE_LIMIT_SINGLE_PROCESS=true` only for a verified
+single-process deployment; Heroku deployments with multiple dynos use `RATE_LIMIT_STORE=redis`
+and the native `redis` client consuming the add-on's `REDIS_URL` directly. Do not copy that
+credential into source or another config var. Missing/unsafe settings or failed Redis connection
+fail startup. Heroku KVS self-signed TLS requires explicit `REDIS_TLS_REJECT_UNAUTHORIZED=false`;
+TLS encryption remains enabled. `RATE_LIMIT_PROXY_MODE=heroku` selects the router-appended
+rightmost client IP, conditional on verified router-only ingress. Read
+[URL security and limiter operations](docs/url-security.md) for quotas, proxy trust, staging
+checks, failure behavior and rollback. No counter service is provisioned by this code.
+
 Before running against existing data, follow the separately authorized
 [read-only preflight and index migration](docs/url-integrity-migration.md). Startup awaits
 MongoDB and verifies uniqueness indexes before accepting traffic; it never creates them.
@@ -67,7 +79,8 @@ npm run dev   # Node watch; restarting also refreshes cached documentation
 `server.js` explicitly loads configuration and starts the lifecycle. `TEST=true` is only an
 app-factory testing option: it disables the limiter but **cannot start a server**. Production
 rejects test mode. Numeric configuration is parsed and range checked. Signals drain requests,
-then await disconnect within `SHUTDOWN_TIMEOUT_MS` (default 10 seconds); failed bounded cleanup
+then close MongoDB and the one shared Redis connection within `SHUTDOWN_TIMEOUT_MS`
+(default 10 seconds); failed bounded cleanup
 logs a safe outcome and exits nonzero. HTTP headers/requests also have bounded timeouts.
 
 ## API contracts and access
@@ -97,13 +110,22 @@ logs a safe outcome and exits nonzero. HTTP headers/requests also have bounded t
   429, unexpected failure 500, DB unavailability 503, and classified GitHub failures 404/502/503/504.
   The retired Gemini 410 shape is unchanged. Documentation errors use HTML with correct status.
   These status corrections replace earlier 200/null and validation-as-500 behavior intentionally.
+- Throttling returns uncached 429 with a bounded delta-seconds `Retry-After`. Counter store
+  failures return safe, uncached 503 `RATE_LIMIT_UNAVAILABLE`; no unlimited or local fallback
+  replaces shared counters. Verified relay lookups and owner URL operations have separate,
+  finite quotas. A missing/invalid optional bearer on public lookup keeps anonymous access.
+- Short links and their destinations are public, including existing four-digit codes. Random
+  codes and non-indexing do not provide confidential access. Never store a destination whose
+  access depends on keeping its short code secret.
 
 Every request gets a generated `X-Request-ID`. Structured logs allow only request IDs, route
 **templates**, methods, status/duration and safe dependency operation/outcomes. They exclude
 raw URLs, search text, original URLs, headers, cookies, credentials and exception/provider bodies.
-`GET /health/live` reports process liveness; `GET /health/ready` reports database/drain readiness.
+`GET /health/live` reports process liveness; `GET /health/ready` reports database/Redis/drain readiness.
 Neither exposes configuration; neither includes optional GitHub availability. Health is exempt
-from the global IP limiter (default 50 requests per 5 minutes). No metrics endpoint is exposed;
+from all rate limits, including counter failures. Unrelated routes retain 50 requests per
+5 minutes per client; URL anonymous lookup, authenticated relay and verified owner operations
+have independent budgets and a documented emergency ceiling. No metrics endpoint is exposed;
 status/duration/dependency logs provide the initial operational evidence. Deployment alerting,
 trusted proxy hops, TLS termination and restrictive CORS require actual ingress requirements.
 
@@ -113,6 +135,9 @@ backend's bearer token from server secrets only. The backend continues to enforc
 owner boundary, regardless of frontend login or CORS. Deploy both compatibility changes
 after provisioning frontend secrets and completing the existing database/index readiness
 procedure. No index, data or issued-code migration is added by the padding compatibility fix.
+The frontend numeric resolver also sends the existing bearer server-side to select the
+finite relay quota. Browsers still need no credentials to resolve public links; frontend
+visitor limits must operate before relay traffic reaches this backend.
 
 ## Testing
 

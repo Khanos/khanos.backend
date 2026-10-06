@@ -11,6 +11,7 @@
     "lint": "./node_modules/eslint/bin/eslint.js .",
     "test:watch": "TEST=true NODE_OPTIONS=--experimental-vm-modules jest --watchAll --silent",
     "test:integration": "TEST=true NODE_OPTIONS=--experimental-vm-modules jest --runInBand --coverage=false --runTestsByPath tests/integration/urls.test.js",
+    "test:redis": "node --test tests/integration/redis.integration.js",
     "blog:check": "node scripts/blog-import.js --source-check",
     "blog:import": "node scripts/blog-import.js"
   },
@@ -32,9 +33,10 @@
     "express": "^5.2.1",
     "express-rate-limit": "^8.3.1",
     "helmet": "^7.1.0",
+    "js-yaml": "^4.1.0",
     "markdown-it": "^14.0.0",
     "mongoose": "^8.2.0",
-    "js-yaml": "^4.1.0"
+    "redis": "^6.3.0"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
