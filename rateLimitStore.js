@@ -27,49 +27,43 @@ export function createMemoryCounter({ now = Date.now, maxEntries = 50000 } = {})
   };
 }
 
-/** Upstash-compatible Redis REST; no provider provisioning or client-side credentials. */
-export function createRedisCounter({ url, token, prefix, timeoutMs, fetchImpl = fetch }) {
+/** Native Redis adapter; connection ownership belongs to application startup. */
+export function createRedisCounter({ client, prefix, timeoutMs, onTimeout }) {
+  if (!client) throw unavailable();
   return {
     async consume(key, windowMs) {
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), timeoutMs);
-      let reader;
       try {
+        if (!client.isReady) throw unavailable();
         const hashed = createHash('sha256').update(key).digest('hex');
-        const response = await fetchImpl(url, { method: 'POST', redirect: 'error', signal: controller.signal,
-          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify(['EVAL', COUNTER_SCRIPT, '1', `${prefix}:${hashed}`, String(windowMs)]),
-        });
-        if (!response.ok || !/^application\/json(?:\s*;|$)/i.test(response.headers.get('content-type') || '')) throw unavailable();
-        reader = response.body.getReader();
-        let size = 0;
-        const chunks = [];
-        let chunk = await reader.read();
-        while (!chunk.done) {
-          const { value } = chunk;
-          size += value.byteLength;
-          if (size > 4096) throw unavailable();
-          chunks.push(Buffer.from(value));
-          chunk = await reader.read();
-        }
-        const { result } = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+        const result = await withDeadline(() => client.withCommandOptions({
+          abortSignal: controller.signal, timeout: timeoutMs,
+        }).eval(COUNTER_SCRIPT, { keys: [`${prefix}:${hashed}`], arguments: [String(windowMs)] }), timeoutMs, onTimeout);
+        // PTTL may legitimately be zero immediately before expiry.
         if (!Array.isArray(result) || result.length !== 2 || !Number.isSafeInteger(result[0]) || result[0] < 1 ||
-            !Number.isSafeInteger(result[1]) || result[1] < 1 || result[1] > windowMs) throw unavailable();
+            !Number.isSafeInteger(result[1]) || result[1] < 0 || result[1] > windowMs) throw unavailable();
         return { count: result[0], resetMs: result[1] };
-      } catch {
-        controller.abort();
-        if (reader) await reader.cancel().catch(() => {});
-        throw unavailable();
-      } finally {
-        clearTimeout(timer);
-      }
+      } catch { throw unavailable(); }
+      finally { controller.abort(); }
     },
   };
 }
 
-export function createCounter(config) {
-  return config.rateLimitStore === 'redis' ? createRedisCounter({
-    url: config.rateLimitRedisUrl, token: config.rateLimitRedisToken,
-    prefix: config.rateLimitPrefix, timeoutMs: config.rateLimitStoreTimeoutMs,
-  }) : createMemoryCounter();
+// An application deadline also bounds replies already sent to Redis; abort alone only
+// cancels queued node-redis commands. Never retry an uncertain increment.
+export async function withDeadline(operation, timeoutMs, onTimeout) {
+  let timer;
+  try {
+    return await Promise.race([Promise.resolve().then(operation), new Promise((resolve, reject) => {
+      timer = setTimeout(() => { onTimeout?.(); reject(unavailable()); }, timeoutMs);
+    })]);
+  } finally { clearTimeout(timer); }
+}
+
+export function createCounter(config, client, onTimeout) {
+  if (config.rateLimitStore === 'redis') return createRedisCounter({
+    client, onTimeout, prefix: config.rateLimitPrefix, timeoutMs: config.rateLimitStoreTimeoutMs,
+  });
+  if (config.rateLimitStore !== 'memory') throw unavailable();
+  return createMemoryCounter();
 }

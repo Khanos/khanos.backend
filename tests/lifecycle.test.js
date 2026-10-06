@@ -141,3 +141,46 @@ it('awaits the real disconnect wrapper and exposes connection readiness only', a
   try { await mongoDB.disconnect(); expect(spy).toHaveBeenCalledTimes(1); expect(mongoDB.isReady()).toBe(false); }
   finally { spy.mockRestore(); }
 });
+
+it('awaits Redis startup before app creation, injects its counter, and closes it after drain', async () => {
+  const connected = deferred();
+  const client = { isReady: true, withCommandOptions: () => ({ eval: async () => [1, 1000] }) };
+  const redis = { client, isReady: jest.fn(() => client.isReady), close: jest.fn().mockResolvedValue(), destroy: jest.fn() };
+  const redisFactory = jest.fn(() => connected.promise);
+  const appFactory = jest.fn(createApp);
+  const starting = start({ config: { ...runtime, rateLimitStore: 'redis' }, database, signals, log, redisFactory, appFactory });
+  await new Promise(resolve => setImmediate(resolve));
+  expect(redisFactory).toHaveBeenCalledTimes(1);
+  expect(appFactory).not.toHaveBeenCalled();
+  connected.resolve(redis);
+  const application = await starting;
+  try {
+    expect(appFactory.mock.calls[0][0].rateLimitCounter).toBeDefined();
+    expect((await request(application.server).get('/health/ready')).status).toBe(200);
+    client.isReady = false;
+    expect((await request(application.server).get('/health/ready')).status).toBe(503);
+    expect((await request(application.server).get('/health/live')).status).toBe(200);
+    expect((await request(application.server).get('/api/url/42')).body.code).toBe('RATE_LIMIT_UNAVAILABLE');
+  } finally { await application.shutdown(); }
+  await application.shutdown();
+  expect(redis.close).toHaveBeenCalledTimes(1);
+  expect(database.disconnect).toHaveBeenCalledTimes(1);
+});
+it('cleans Mongo after Redis startup failure without opening HTTP or exposing credentials', async () => {
+  const factory = jest.fn();
+  const redisFactory = jest.fn().mockRejectedValue(new Error('rediss://:synthetic-private-secret@host'));
+  await expect(start({ config: { ...runtime, rateLimitStore: 'redis' }, database, signals, log, redisFactory, serverFactory: factory })).rejects.toThrow();
+  expect(factory).not.toHaveBeenCalled(); expect(database.disconnect).toHaveBeenCalledTimes(1);
+  expect(log).toHaveBeenCalledWith({ event: 'startup', outcome: 'failed', code: 'REDIS_STARTUP_FAILED' });
+  expect(JSON.stringify(log.mock.calls)).not.toContain('synthetic-private-secret');
+});
+it('closes Redis even when Mongo disconnect fails', async () => {
+  const redis = { client: {}, isReady: () => true, close: jest.fn().mockResolvedValue(), destroy: jest.fn() };
+  const application = await start({ config: { ...runtime, rateLimitStore: 'redis' }, database, signals, log, redisFactory: async () => redis });
+  database.disconnect.mockRejectedValue(new Error('private disconnect failure'));
+  await expect(application.shutdown()).rejects.toThrow();
+  expect(redis.close).toHaveBeenCalledTimes(1);
+});
+it('never creates a Redis connection from createApp and requires injection for Redis mode', () => {
+  expect(() => createApp({ config: { ...runtime, rateLimitStore: 'redis' } })).toThrow('Rate limit store unavailable');
+});

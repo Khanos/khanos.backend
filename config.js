@@ -31,13 +31,25 @@ export function parseConfig(env) {
   const rateLimitStore = env.RATE_LIMIT_STORE || (test ? 'memory' : undefined);
   if (!['memory', 'redis'].includes(rateLimitStore)) throw new Error('RATE_LIMIT_STORE must be explicitly configured');
   if (rateLimitStore === 'memory' && !test && env.RATE_LIMIT_SINGLE_PROCESS !== 'true') throw new Error('Memory rate limits require RATE_LIMIT_SINGLE_PROCESS=true');
-  let rateLimitRedisUrl;
+  let redisUrl;
   if (rateLimitStore === 'redis') {
-    const url = new URL(env.RATE_LIMIT_REDIS_REST_URL);
-    if (url.protocol !== 'https:' || url.username || url.password || url.search || url.hash || url.pathname !== '/') throw new Error('Invalid RATE_LIMIT_REDIS_REST_URL');
-    if (typeof env.RATE_LIMIT_REDIS_REST_TOKEN !== 'string' || !/^[\x21-\x7e]{16,512}$/.test(env.RATE_LIMIT_REDIS_REST_TOKEN)) throw new Error('Invalid RATE_LIMIT_REDIS_REST_TOKEN');
-    rateLimitRedisUrl = url.href;
+    // URL parse errors can contain their input; always replace them with a safe error.
+    try {
+      if (typeof env.REDIS_URL !== 'string' || /\s/.test(env.REDIS_URL)) throw new Error();
+      const url = new URL(env.REDIS_URL);
+      if (!['redis:', 'rediss:'].includes(url.protocol) || !url.hostname || url.search || url.hash ||
+          (url.port && (Number(url.port) < 1 || Number(url.port) > 65535)) ||
+          !/^\/(?:\d+)?$/.test(url.pathname || '/') ||
+          (url.pathname.length > 1 && !Number.isSafeInteger(Number(url.pathname.slice(1))))) throw new Error();
+      // Validate percent escapes before the native client decodes credentials.
+      decodeURIComponent(url.username); decodeURIComponent(url.password);
+      redisUrl = env.REDIS_URL;
+    } catch { throw new Error('Invalid REDIS_URL'); }
   }
+  if (env.REDIS_TLS_REJECT_UNAUTHORIZED !== undefined && !['true', 'false'].includes(env.REDIS_TLS_REJECT_UNAUTHORIZED)) throw new Error('Invalid REDIS_TLS_REJECT_UNAUTHORIZED');
+  const rateLimitProxyMode = env.RATE_LIMIT_PROXY_MODE || 'cidr';
+  if (!['cidr', 'heroku'].includes(rateLimitProxyMode)) throw new Error('Invalid RATE_LIMIT_PROXY_MODE');
+  if (rateLimitProxyMode === 'heroku' && env.TRUSTED_PROXY_CIDRS) throw new Error('Heroku proxy mode cannot use TRUSTED_PROXY_CIDRS');
   const rateLimitPrefix = env.RATE_LIMIT_PREFIX || 'khanos:backend:limits:v1';
   if (!/^[a-z\d:_-]{1,64}$/i.test(rateLimitPrefix)) throw new Error('Invalid RATE_LIMIT_PREFIX');
   const databaseName = environment === 'production' ? env.DB_NAME : env.TEST_DB_NAME;
@@ -56,7 +68,7 @@ export function parseConfig(env) {
     port: integer(env, 'PORT', test ? 0 : 3000, test ? 0 : 1, 65535),
     rateLimitWindowMs: integer(env, 'RATE_LIMIT_WINDOW_MS', 300000, 1, 3600000),
     rateLimitMax: integer(env, 'RATE_LIMIT_MAX', 50, 1, 100000),
-    rateLimitStore, rateLimitRedisUrl, rateLimitRedisToken: env.RATE_LIMIT_REDIS_REST_TOKEN,
+    rateLimitStore, redisUrl, redisTlsRejectUnauthorized: env.REDIS_TLS_REJECT_UNAUTHORIZED !== 'false',
     rateLimitPrefix,
     rateLimitStoreTimeoutMs: integer(env, 'RATE_LIMIT_STORE_TIMEOUT_MS', 1000, 1, 5000),
     rateLimitSafetyMax: integer(env, 'RATE_LIMIT_SAFETY_MAX', 5000, 1, 100000),
@@ -67,6 +79,7 @@ export function parseConfig(env) {
       owner: integer(env, 'URL_RATE_LIMIT_OWNER_MAX', 60, 1, 100000),
     }),
     trustedProxyCidrs: trustedProxies(env.TRUSTED_PROXY_CIDRS),
+    rateLimitProxyMode,
     githubBase: githubBase.href,
     githubTimeoutMs: integer(env, 'GITHUB_TIMEOUT_MS', 5000, 1, 30000),
     shutdownTimeoutMs: integer(env, 'SHUTDOWN_TIMEOUT_MS', 10000, 1, 30000),

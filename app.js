@@ -20,7 +20,9 @@ import { createCounter } from './rateLimitStore.js';
 export function createApp({ config, log = createLogger(), isReady = () => false, urlService, githubService, blogService, rateLimitCounter }) {
   const app = express();
   app.disable('x-powered-by');
-  app.set('trust proxy', config.trustedProxyCidrs);
+  // Heroku appends the connecting peer at the right of XFF. Trust only the
+  // socket hop, never earlier entries; requires router-only dyno ingress.
+  app.set('trust proxy', config.rateLimitProxyMode === 'heroku' ? 1 : config.trustedProxyCidrs);
   app.locals.log = log;
   app.set('views', path.join(ROOT, 'views'));
   app.set('view engine', 'ejs');

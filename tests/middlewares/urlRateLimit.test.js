@@ -112,3 +112,26 @@ it('rejects aggregate exhaustion without minting or incrementing an operation co
   expect(counter.consume).toHaveBeenCalledTimes(1);
   expect(counter.consume).toHaveBeenCalledWith('safety:aggregate', runtime.urlRateLimitWindowMs);
 });
+
+it('uses only the router-appended rightmost client in explicit Heroku mode', async () => {
+  const app = appFor({ ...options, config: { ...runtime, rateLimitProxyMode: 'heroku' } });
+  expect(app.get('trust proxy')).toBe(1);
+  expect((await request(app).get('/api/url/42').set('X-Forwarded-For', '198.51.100.1, 192.0.2.10')).status).toBe(200);
+  expect((await request(app).get('/api/url/42').set('X-Forwarded-For', '198.51.100.2, 192.0.2.10').set('Forwarded', 'for=192.0.2.11').set('X-Real-IP', '192.0.2.11')).status).toBe(429);
+  expect((await request(app).get('/api/url/42').set('X-Forwarded-For', '198.51.100.1, 192.0.2.11')).status).toBe(200);
+});
+it('groups IPv6 addresses by /56 with Heroku ingress identity', async () => {
+  const app = appFor({ ...options, config: { ...runtime, rateLimitProxyMode: 'heroku' } });
+  expect((await request(app).get('/api/url/42').set('X-Forwarded-For', '2001:db8:1234:5600::1')).status).toBe(200);
+  expect((await request(app).get('/api/url/42').set('X-Forwarded-For', '2001:db8:1234:56ff::2')).status).toBe(429);
+  expect((await request(app).get('/api/url/42').set('X-Forwarded-For', '2001:db8:1234:5700::1')).status).toBe(200);
+});
+it.each([undefined, '198.51.100.1, invalid-peer'])('fails closed for missing or malformed Heroku ingress identity %#', async header => {
+  const counter = { consume: jest.fn() };
+  const app = appFor({ ...options, rateLimitCounter: counter, config: { ...runtime, rateLimitProxyMode: 'heroku' } });
+  const get = request(app).get('/api/url/42');
+  if (header) get.set('X-Forwarded-For', header);
+  expect((await get).body.code).toBe('RATE_LIMIT_UNAVAILABLE');
+  expect(counter.consume).not.toHaveBeenCalled();
+  expect((await request(app).get('/health/live')).status).toBe(200);
+});

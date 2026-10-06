@@ -24,15 +24,22 @@ it.each([{ RATE_LIMIT_STORE: '' }, { RATE_LIMIT_STORE: 'unbounded' }, { RATE_LIM
   { TRUSTED_PROXY_CIDRS: Array(33).fill('127.0.0.1').join(',') }])('rejects unsafe limiter and proxy settings %#', patch => {
   expect(() => parseConfig({ ...base, ...patch })).toThrow();
 });
-it('accepts only explicitly configured Redis REST credentials and address ranges', () => {
-  const redis = { ...base, RATE_LIMIT_STORE: 'redis', RATE_LIMIT_REDIS_REST_URL: 'https://counter.example/', RATE_LIMIT_REDIS_REST_TOKEN: 'synthetic-store-credential', TRUSTED_PROXY_CIDRS: '127.0.0.1, ::1/128,192.0.2.0/24' };
-  expect(parseConfig(redis)).toMatchObject({ rateLimitStore: 'redis', rateLimitRedisUrl: 'https://counter.example/', trustedProxyCidrs: ['127.0.0.1', '::1/128', '192.0.2.0/24'] });
-  for (const url of ['http://counter.example/', 'https://user:password@counter.example/', 'https://counter.example/?q=x', 'https://counter.example/#x', 'https://counter.example/path', 'invalid']) {
-    expect(() => parseConfig({ ...redis, RATE_LIMIT_REDIS_REST_URL: url })).toThrow();
+it('accepts native Redis URLs and keeps configuration errors credential-free', () => {
+  const redis = { ...base, RATE_LIMIT_STORE: 'redis', REDIS_URL: 'rediss://:synthetic-secret@counter.example:12345', TRUSTED_PROXY_CIDRS: '127.0.0.1, ::1/128,192.0.2.0/24' };
+  expect(parseConfig(redis)).toMatchObject({ rateLimitStore: 'redis', redisUrl: redis.REDIS_URL, redisTlsRejectUnauthorized: true, trustedProxyCidrs: ['127.0.0.1', '::1/128', '192.0.2.0/24'] });
+  for (const url of ['redis://localhost', 'redis://localhost/0', 'rediss://user:p%40ss@counter.example:12345/1', 'rediss://[::1]:12345']) {
+    expect(parseConfig({ ...redis, REDIS_URL: url }).redisUrl).toBe(url);
   }
-  for (const token of ['', undefined, 'short', 'contains spaces and more']) {
-    expect(() => parseConfig({ ...redis, RATE_LIMIT_REDIS_REST_TOKEN: token })).toThrow();
+  for (const url of ['', undefined, 'https://counter.example/', 'rediss://:synthetic-secret@', 'redis://host:0', 'redis://host/?q=x', 'redis://host/#x', 'redis://host/path', 'redis://host/1.5', 'redis://host/99999999999999999', 'redis://u:%xx@host', 'redis://host with space', 'invalid']) {
+    expect(() => parseConfig({ ...redis, REDIS_URL: url })).toThrow('Invalid REDIS_URL');
   }
+  expect(parseConfig({ ...redis, REDIS_TLS_REJECT_UNAUTHORIZED: 'false' }).redisTlsRejectUnauthorized).toBe(false);
+  expect(() => parseConfig({ ...redis, REDIS_TLS_REJECT_UNAUTHORIZED: 'invalid' })).toThrow('Invalid REDIS_TLS_REJECT_UNAUTHORIZED');
+});
+it('requires explicit Heroku ingress assumptions without conflicting CIDR configuration', () => {
+  expect(parseConfig({ ...base, RATE_LIMIT_PROXY_MODE: 'heroku' }).rateLimitProxyMode).toBe('heroku');
+  expect(() => parseConfig({ ...base, RATE_LIMIT_PROXY_MODE: 'true' })).toThrow('Invalid RATE_LIMIT_PROXY_MODE');
+  expect(() => parseConfig({ ...base, RATE_LIMIT_PROXY_MODE: 'heroku', TRUSTED_PROXY_CIDRS: '127.0.0.1' })).toThrow('Heroku proxy mode');
 });
 it.each([{ TEST: 'true', NODE_ENV: 'production' }, { ENV: 'production', NODE_ENV: 'development' },
   { NODE_ENV: 'invalid' }, { TEST: 'yes' }, { OWNER_API_TOKEN: '' }, { OWNER_API_TOKEN: 'x'.repeat(257) },

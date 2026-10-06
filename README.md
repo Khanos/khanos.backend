@@ -52,8 +52,12 @@ HTTP failures, bad JSON or cancellation. No GitHub credentials or cache are conf
 
 Rate limiting requires explicit deployment configuration before restarting this release.
 Use `RATE_LIMIT_STORE=memory` with `RATE_LIMIT_SINGLE_PROCESS=true` only for a verified
-single-process deployment; use `RATE_LIMIT_STORE=redis` and server-only Redis REST secrets
-for shared counters across replicas. Missing/unsafe settings fail startup. Read
+single-process deployment; Heroku deployments with multiple dynos use `RATE_LIMIT_STORE=redis`
+and the native `redis` client consuming the add-on's `REDIS_URL` directly. Do not copy that
+credential into source or another config var. Missing/unsafe settings or failed Redis connection
+fail startup. Heroku KVS self-signed TLS requires explicit `REDIS_TLS_REJECT_UNAUTHORIZED=false`;
+TLS encryption remains enabled. `RATE_LIMIT_PROXY_MODE=heroku` selects the router-appended
+rightmost client IP, conditional on verified router-only ingress. Read
 [URL security and limiter operations](docs/url-security.md) for quotas, proxy trust, staging
 checks, failure behavior and rollback. No counter service is provisioned by this code.
 
@@ -75,7 +79,8 @@ npm run dev   # Node watch; restarting also refreshes cached documentation
 `server.js` explicitly loads configuration and starts the lifecycle. `TEST=true` is only an
 app-factory testing option: it disables the limiter but **cannot start a server**. Production
 rejects test mode. Numeric configuration is parsed and range checked. Signals drain requests,
-then await disconnect within `SHUTDOWN_TIMEOUT_MS` (default 10 seconds); failed bounded cleanup
+then close MongoDB and the one shared Redis connection within `SHUTDOWN_TIMEOUT_MS`
+(default 10 seconds); failed bounded cleanup
 logs a safe outcome and exits nonzero. HTTP headers/requests also have bounded timeouts.
 
 ## API contracts and access
@@ -116,7 +121,7 @@ logs a safe outcome and exits nonzero. HTTP headers/requests also have bounded t
 Every request gets a generated `X-Request-ID`. Structured logs allow only request IDs, route
 **templates**, methods, status/duration and safe dependency operation/outcomes. They exclude
 raw URLs, search text, original URLs, headers, cookies, credentials and exception/provider bodies.
-`GET /health/live` reports process liveness; `GET /health/ready` reports database/drain readiness.
+`GET /health/live` reports process liveness; `GET /health/ready` reports database/Redis/drain readiness.
 Neither exposes configuration; neither includes optional GitHub availability. Health is exempt
 from all rate limits, including counter failures. Unrelated routes retain 50 requests per
 5 minutes per client; URL anonymous lookup, authenticated relay and verified owner operations
